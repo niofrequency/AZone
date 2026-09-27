@@ -30,8 +30,8 @@ is to keep the AZone fork public. For personal use only, you don't have to do an
 
 | PRD requirement | wger piece | Status |
 |---|---|---|
-| Upper / Lower split, 4–5 days/week | `Routine` → `Day` → `Slot` → `SlotEntry` (`wger/manager/models/`). `Routine.fit_in_week` makes days repeat weekly | ✅ |
-| Exercise list with target muscle | Exercise database with `Muscle` (`wger/exercises/models/muscle.py`) | ✅ (a few exercises may need adding, e.g. "Chest Dips – forward lean") |
+| Upper / Lower split, 4–5 days/week | `Routine` → `Day` → `Slot` → `SlotEntry` (`wger/manager/models/`). Seeded as a repeating Upper A → Lower B → Rest cycle (about 4.7 sessions/week) so each exercise has a single progression track | ✅ |
+| Exercise list with target muscle | Exercise database with `Muscle` (`wger/exercises/models/muscle.py`) | ✅ all 11 PRD exercises exist (dips use wger's generic "Dips", with the forward-lean cue in the notes) |
 | Sets × rep ranges (4×8–10) | `SetsConfig`, `RepetitionsConfig` + `MaxRepetitionsConfig` (a min–max range) | ✅ |
 | Form & technique notes | `SlotEntry.comment` / `Slot.comment` | ✅ |
 | Log sets, reps, weight | `WorkoutLog` (`wger/manager/models/log.py`) | ✅ |
@@ -181,25 +181,13 @@ existing tables, so the change shows up everywhere.
   rep ranges, your form notes as comments, and `double_progression` on every entry
 - a Nutrition plan: 165 g protein, 1,900 kcal, 165 g carbs, 52 g fat, plus Breakfast / Lunch / Pre-WO / Dinner meals
 - measurement categories: Waist, Chest, Shoulders, Arms, Thighs, Steps, plus the Shoulder:Waist dynamic category
-- `CoachGoal(target_weight=165, 12 weeks, focus=[upper_chest, lats, side_delts, abs])`
+- `CoachGoal(target_weight=165, 12 weeks, focus=[upper_chest, lats, side_delts, abs])`. Comes in milestone 4, together with the model
 
 ---
 
 ## 5. Getting started
 
-```bash
-# 1. Put wger's code into this repo (keep upstream so you can pull their updates)
-git remote add upstream https://github.com/wger-project/wger.git
-git fetch upstream && git merge upstream/master --allow-unrelated-histories
-
-# 2. Run locally with Docker (see github.com/wger-project/docker), or natively:
-uv sync && npm install
-wger bootstrap   # invoke task in wger/tasks.py: creates settings, migrates DB, loads fixtures, admin user
-wger start       # dev server on localhost:8000
-
-# 3. Create the app
-python manage.py startapp coach wger/coach
-```
+See [getting-started.md](getting-started.md) for running AZone locally and loading the program.
 
 Hosting it for yourself and friends: a small VPS (or Railway/Fly) running wger's docker-compose (Postgres + Redis + Celery).
 
@@ -207,14 +195,14 @@ Hosting it for yourself and friends: a small VPS (or Railway/Fly) running wger's
 
 ## 6. Milestones
 
-| # | Milestone | Done when |
-|---|---|---|
-| 1 | Fork runs locally | You can sign up, log an Upper A workout, and log a meal |
-| 2 | Seed command | One command sets up your full PRD routine and nutrition plan |
-| 3 | `double_progression` | Hitting 4×10 on Incline DB gives 4×8 at +5 lb next session |
-| 4 | Coach models + check-in page | Weekly measurements & photos saved. V-taper ratio charted |
-| 5 | Rules engine + dashboard | Recommendations appear, and "Apply" changes the routine or calorie goal |
-| 6 | Cardio + steps | Cardio log and 7-day steps average on the dashboard |
-| 7 | Deploy | Public URL, other people can sign up and set their own goals |
+| # | Milestone | Done when | Status |
+|---|---|---|---|
+| 1 | Fork runs locally | You can sign up, log an Upper A workout, and log a meal | ✅ |
+| 2 | Seed command | One command sets up your full PRD routine and nutrition plan | ✅ `seed_aesthetic165` |
+| 3 | `double_progression` | Hitting 4×10 on Incline DB gives 4×8 at +5 lb next session | |
+| 4 | Coach models + check-in page | Weekly measurements & photos saved. V-taper ratio charted | |
+| 5 | Rules engine + dashboard | Recommendations appear, and "Apply" changes the routine or calorie goal | |
+| 6 | Cardio + steps | Cardio log and 7-day steps average on the dashboard | |
+| 7 | Deploy | Public URL, other people can sign up and set their own goals | |
 
 Each milestone gets tests in `wger/coach/tests/`, following wger's existing test style.
