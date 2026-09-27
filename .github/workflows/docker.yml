@@ -19,6 +19,8 @@ concurrency:
 
 jobs:
   build-prod:
+    # AZone: publishing images to wger's registries only works upstream
+    if: github.repository == 'wger-project/wger'
     name: Build production image ${{ matrix.platform }}
     runs-on: ${{ matrix.runner }}
     outputs:
@@ -136,6 +138,8 @@ jobs:
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
   merge:
+    # AZone: publishing images to wger's registries only works upstream
+    if: github.repository == 'wger-project/wger'
     runs-on: ubuntu-latest
     needs:
       - build-prod

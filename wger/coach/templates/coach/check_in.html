@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Weekly check-in{% endblock %}
+
+{% block content %}
+    <form method="post" enctype="multipart/form-data" class="card card-body mb-4">
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+            <div class="alert alert-danger">{{ form.non_field_errors|join:" " }}</div>
+        {% endif %}
+        <div class="row">
+            <div class="col-sm-6">{{ form.date|as_crispy_field }}</div>
+            <div class="col-sm-6">{{ form.weight|as_crispy_field }}</div>
+        </div>
+        <div class="row">
+            {% for part in body_parts %}
+                {% for field in form %}
+                    {% if field.name == part.key %}
+                        <div class="col-6 col-sm-4">{{ field|as_crispy_field }}</div>
+                    {% endif %}
+                {% endfor %}
+            {% endfor %}
+        </div>
+        {{ form.photo|as_crispy_field }}
+        {{ form.notes|as_crispy_field }}
+        <button type="submit" class="btn btn-primary">Save check-in</button>
+    </form>
+
+    {% for chart in charts %}
+        {% include "coach/_line_chart.html" %}
+    {% endfor %}
+
+    <h3 class="h5 mt-4">History</h3>
+    {% if history %}
+        <div class="table-responsive">
+            <table class="table table-sm align-middle">
+                <thead>
+                <tr>
+                    <th scope="col">Date</th>
+                    <th scope="col" class="text-end">Weight ({{ weight_unit }})</th>
+                    {% for part in body_parts %}
+                        <th scope="col" class="text-end">{{ part.name }}</th>
+                    {% endfor %}
+                    <th scope="col" class="text-end">Shoulder:waist</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for row in history %}
+                    <tr>
+                        <td>{{ row.date|date:"M j, Y" }}</td>
+                        <td class="text-end">{{ row.weight|floatformat:1|default:"–" }}</td>
+                        {% for value in row.parts %}
+                            <td class="text-end">{{ value|floatformat:1|default:"–" }}</td>
+                        {% endfor %}
+                        <td class="text-end">{{ row.ratio|floatformat:2|default:"–" }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="text-muted">Nothing logged yet.</p>
+    {% endif %}
+{% endblock %}
+
+{% block sidebar %}
+    <div class="card card-body mt-3">
+        <h3 class="h6">Your goal</h3>
+        {% if goal %}
+            <p class="mb-1">
+                {% if goal.start_weight %}{{ goal.start_weight|floatformat:"-1" }} →{% endif %}
+                <strong>{{ goal.target_weight|floatformat:"-1" }} {{ goal.weight_unit }}</strong>
+                by {{ goal.target_date|date:"M j, Y" }}
+            </p>
+            <p class="text-muted small mb-2">
+                {{ goal.rate_min_per_week|floatformat:"-1" }}–{{ goal.rate_max_per_week|floatformat:"-1" }}
+                {{ goal.weight_unit }}/week · {{ goal.protein_target }} g protein ·
+                {{ goal.step_target }} steps
+            </p>
+            <a href="{% url 'coach:goal' %}">Edit goal</a>
+        {% else %}
+            <p class="mb-2">Set a target weight and date so the coach can track your pace.</p>
+            <a class="btn btn-sm btn-outline-primary" href="{% url 'coach:goal' %}">Set a goal</a>
+        {% endif %}
+    </div>
+    <div class="card card-body mt-3 small">
+        <h3 class="h6">How to measure</h3>
+        <ul class="ps-3 mb-0">
+            <li>Weigh in every morning after the bathroom, before eating. The 7-day average is what counts.</li>
+            <li>Measure once a week, same day and time, relaxed and not pumped.</li>
+            <li><strong>Waist:</strong> at the navel.</li>
+            <li><strong>Shoulders:</strong> around the widest point of the delts, arms relaxed.</li>
+            <li><strong>Shoulder:waist</strong> is calculated for you. {{ vtaper_target }} is the classic V-taper target.</li>
+        </ul>
+    </div>
+{% endblock %}
+
+{% block extra_body %}
+    {% include "coach/_chart_script.html" %}
+{% endblock %}

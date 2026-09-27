@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags humanize %}
+
+{% block title %}Cardio &amp; steps{% endblock %}
+
+{% block content %}
+    {% include "coach/_tiles.html" %}
+
+    <form method="post" class="card card-body mb-4">
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+            <div class="alert alert-danger">{{ form.non_field_errors|join:" " }}</div>
+        {% endif %}
+        <div class="row">
+            <div class="col-sm-6">{{ form.date|as_crispy_field }}</div>
+            <div class="col-sm-6">{{ form.steps|as_crispy_field }}</div>
+        </div>
+        <div class="row">
+            <div class="col-sm-4">{{ form.kind|as_crispy_field }}</div>
+            <div class="col-sm-4">{{ form.timing|as_crispy_field }}</div>
+            <div class="col-sm-4">{{ form.duration|as_crispy_field }}</div>
+            <div class="col-sm-4">{{ form.incline|as_crispy_field }}</div>
+            <div class="col-sm-4">{{ form.speed|as_crispy_field }}</div>
+            <div class="col-sm-4">{{ form.notes|as_crispy_field }}</div>
+        </div>
+        <button type="submit" class="btn btn-primary">Save</button>
+    </form>
+
+    {% include "coach/_line_chart.html" %}
+
+    <h3 class="h5 mt-4">Last 14 days</h3>
+    {% if days %}
+        <div class="table-responsive">
+            <table class="table table-sm align-middle">
+                <thead>
+                <tr>
+                    <th scope="col">Date</th>
+                    <th scope="col" class="text-end">Steps</th>
+                    <th scope="col">Cardio</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for day in days %}
+                    <tr>
+                        <td>{{ day.date|date:"D, M j" }}</td>
+                        <td class="text-end">{% if day.steps is not None %}{{ day.steps|floatformat:0|intcomma }}{% else %}–{% endif %}</td>
+                        <td>
+                            {% for session in day.sessions %}
+                                {{ session.get_kind_display }} ({{ session.get_timing_display|lower }}): {{ session.summary }}{% if not forloop.last %}<br>{% endif %}
+                            {% empty %}–{% endfor %}
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="text-muted">Nothing logged yet.</p>
+    {% endif %}
+{% endblock %}
+
+{% block sidebar %}
+    <div class="card card-body mt-3 small">
+        <h3 class="h6">The plan</h3>
+        <ul class="ps-3 mb-0">
+            <li><strong>Morning:</strong> 30–45 min brisk walk, or treadmill at 10–12% incline, 3.0–3.5 mph.</li>
+            <li><strong>After lifting:</strong> 15–20 min incline walk as a cool-down.</li>
+            <li><strong>Steps:</strong> at least 8,000 a day, ideally {% if goal %}{{ goal.step_target|intcomma }}{% else %}10,000{% endif %}.</li>
+            <li>Low-intensity cardio burns fat without eating into recovery from lifting.</li>
+        </ul>
+    </div>
+{% endblock %}
+
+{% block extra_body %}
+    {% include "coach/_chart_script.html" %}
+{% endblock %}

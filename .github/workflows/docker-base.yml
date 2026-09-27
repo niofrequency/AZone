@@ -18,6 +18,8 @@ permissions:
 
 jobs:
   path-context:
+    # AZone: publishing images to wger's registries only works upstream
+    if: github.repository == 'wger-project/wger'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

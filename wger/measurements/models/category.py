@@ -253,6 +253,8 @@ class Category(models.Model):
         WHTR = 'WHTR', 'Waist-to-height ratio'
         ONE_REP_MAX = 'ONE_REP_MAX', '1RM'
         ONE_RM_TOTAL = 'ONE_RM_TOTAL', '1RM total'
+        # AZone: calculated by the coach app, see wger/coach/dynamic.py
+        SHOULDER_WAIST = 'SHOULDER_WAIST', 'Shoulder-to-waist ratio'
 
     dynamic_type = models.CharField(
         max_length=20, choices=DynamicType.choices, default=DynamicType.NONE, db_index=True

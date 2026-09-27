@@ -19,6 +19,8 @@ permissions:
 
 jobs:
   demo:
+    # AZone: publishing images to wger's registries only works upstream
+    if: github.repository == 'wger-project/wger'
     name: Build demo image
     runs-on: ubuntu-latest
     steps:

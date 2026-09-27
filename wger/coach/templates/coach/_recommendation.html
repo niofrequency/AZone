@@ -1,0 +1,19 @@
+<div class="coach-rec sev-{{ rec.severity }}">
+    <div class="coach-rec-label">
+        {% if rec.severity == 'warning' %}⚠ {% elif rec.severity == 'good' %}✓ {% elif rec.severity == 'adjust' %}→ {% else %}ℹ {% endif %}{{ rec.get_severity_display }}
+    </div>
+    <div class="coach-rec-title">{{ rec.title }}</div>
+    {% if rec.body %}<div class="coach-rec-body">{{ rec.body }}</div>{% endif %}
+    <div class="d-flex gap-2">
+        {% if rec.can_apply %}
+            <form method="post" action="{% url 'coach:apply' rec.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-primary">{{ rec.action_label|default:"Apply" }}</button>
+            </form>
+        {% endif %}
+        <form method="post" action="{% url 'coach:dismiss' rec.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-link text-muted px-0">Dismiss</button>
+        </form>
+    </div>
+</div>

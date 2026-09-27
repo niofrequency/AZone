@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}Coach{% endblock %}
+
+{% block content %}
+    <style>
+        .coach-rec { border: 1px solid #e6e5e0; border-left-width: 4px; border-radius: 8px; padding: 10px 14px; margin-bottom: 10px; }
+        .coach-rec.sev-warning { border-left-color: #c2410c; }
+        .coach-rec.sev-adjust { border-left-color: #2a78d6; }
+        .coach-rec.sev-good { border-left-color: #1f8a3a; }
+        .coach-rec.sev-info { border-left-color: #8f8e88; }
+        .coach-rec-label { font-size: .75rem; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; color: #52514e; }
+        .coach-rec-title { font-weight: 600; margin: 2px 0; }
+        .coach-rec-body { font-size: .9rem; color: #3a3936; margin-bottom: 6px; }
+        .coach-progress { list-style: none; padding: 0; margin: 0; }
+        .coach-progress li { display: flex; justify-content: space-between; gap: 8px; padding: 4px 0; border-bottom: 1px solid #eeede9; font-size: .9rem; }
+        .coach-progress .change { font-weight: 600; white-space: nowrap; }
+        .coach-progress .change.up { color: #1d6b2f; }
+    </style>
+
+    {% if not goal %}
+        <div class="alert alert-info">
+            Set a goal so the coach can track your pace and tell you what to adjust.
+            <a class="alert-link" href="{% url 'coach:goal' %}">Set a goal</a>
+        </div>
+    {% endif %}
+
+    {% if tiles %}
+        {% include "coach/_tiles.html" %}
+    {% endif %}
+
+    <h3 class="h5">What to work on</h3>
+    {% for rec in todo %}
+        {% include "coach/_recommendation.html" %}
+    {% empty %}
+        <p class="text-muted">Nothing to change right now. Keep logging and check back after your next check-in.</p>
+    {% endfor %}
+
+    {% if status %}
+        <h3 class="h5 mt-4">Status</h3>
+        {% for rec in status %}
+            {% include "coach/_recommendation.html" %}
+        {% endfor %}
+    {% endif %}
+
+    <div class="mt-4">
+        {% include "coach/_line_chart.html" %}
+    </div>
+{% endblock %}
+
+{% block sidebar %}
+    <div class="card card-body mt-3">
+        <h3 class="h6">Next workout</h3>
+        {% if next_workout %}
+            <p class="mb-1">
+                <strong>{{ next_workout.day.name }}</strong>
+                {% if next_workout.day.description %}· {{ next_workout.day.description }}{% endif %}
+            </p>
+            <p class="text-muted small mb-2">{{ next_workout.date|date:"l, M j" }} · session {{ next_workout.iteration }}</p>
+            <a href="{% url 'manager:routine:view' routine.pk %}">Open routine</a>
+        {% elif routine %}
+            <p class="mb-0 text-muted">No more training days in "{{ routine.name }}".</p>
+        {% else %}
+            <p class="mb-0 text-muted">No routine yet. <a href="{% url 'manager:routine:overview' %}">Create one</a>.</p>
+        {% endif %}
+    </div>
+
+    {% if progress %}
+        <div class="card card-body mt-3">
+            <h3 class="h6">Last session vs. the one before</h3>
+            <ul class="coach-progress">
+                {% for item in progress %}
+                    <li>
+                        <span>{{ item.exercise }}<br><span class="text-muted small">{{ item.current }}</span></span>
+                        <span class="change {% if item.improved %}up{% endif %}">{% if item.improved %}▲ {% endif %}{{ item.change }}</span>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    <div class="card card-body mt-3">
+        <h3 class="h6">Log</h3>
+        <ul class="ps-3 mb-0">
+            <li><a href="{% url 'coach:check-in' %}">Weekly check-in</a></li>
+            <li><a href="{% url 'coach:cardio' %}">Cardio &amp; steps</a></li>
+            {% if plan %}
+                <li><a href="{{ plan.get_absolute_url }}">Meals ({{ plan.description|default:"nutrition plan" }})</a></li>
+            {% endif %}
+            <li><a href="{% url 'coach:goal' %}">Goal</a></li>
+        </ul>
+    </div>
+{% endblock %}
+
+{% block extra_body %}
+    {% include "coach/_chart_script.html" %}
+{% endblock %}
