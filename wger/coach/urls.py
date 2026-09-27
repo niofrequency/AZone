@@ -27,4 +27,5 @@ urlpatterns = [
     path('recommendation/<int:pk>/dismiss/', views.dismiss_recommendation, name='dismiss'),
     path('check-in/', views.check_in, name='check-in'),
     path('goal/', views.goal, name='goal'),
+    path('cardio/', views.cardio, name='cardio'),
 ]

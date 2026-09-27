@@ -189,6 +189,30 @@ class ChartTestCase(WgerTestCase):
         self.assertEqual(len(chart.hover), 8)
         self.assertEqual(len(chart.legend), 2)
 
+    def test_bar_chart(self):
+        day = datetime.date(2026, 9, 1)
+        points = [
+            Point(day + datetime.timedelta(days=i), Decimal(8000 + 500 * i)) for i in range(5)
+        ]
+        chart = charts.build(
+            charts.Chart(
+                id='c',
+                title='Steps',
+                unit='',
+                decimals=0,
+                series=[charts.Series('steps', 'Steps', points, style='bars')],
+                reference_value=10000,
+            )
+        )
+
+        self.assertEqual(len(chart.bars), 5)
+        self.assertEqual(chart.y_ticks[0]['label'], '0')
+        self.assertFalse(chart.end_label['dot'])
+        self.assertEqual(chart.end_label['label'], '10,000')
+        # Rounded top, square base
+        self.assertIn('Q', chart.bars[0]['d'])
+        self.assertTrue(chart.bars[0]['d'].endswith('Z'))
+
     def test_nice_steps(self):
         self.assertEqual(charts.nice_step(8), 2)
         self.assertEqual(charts.nice_step(0.3), 0.1)

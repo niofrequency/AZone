@@ -50,7 +50,7 @@ class Series:
     label: str
     points: list[Point]
     style: str = 'line'
-    """'line', 'dots' or 'reference'"""
+    """'line', 'dots', 'bars' or 'reference'"""
 
 
 @dataclass
@@ -67,6 +67,7 @@ class Chart:
     height: int = HEIGHT
     paths: list[dict] = field(default_factory=list)
     dots: list[dict] = field(default_factory=list)
+    bars: list[dict] = field(default_factory=list)
     y_ticks: list[dict] = field(default_factory=list)
     x_ticks: list[dict] = field(default_factory=list)
     reference: dict | None = None
@@ -113,6 +114,18 @@ def nice_step(span: float, target_ticks: int = 4) -> float:
     return 10 * magnitude
 
 
+def bar_path(x0: float, x1: float, top: float, base: float) -> str:
+    """
+    A bar with a 4px rounded top, square at the baseline
+    """
+    r = max(min(4, (x1 - x0) / 2, base - top), 0)
+    x0, x1 = round(x0, 1), round(x1, 1)
+    return (
+        f'M{x0},{base} L{x0},{top + r} Q{x0},{top} {x0 + r},{top} '
+        f'L{x1 - r},{top} Q{x1},{top} {x1},{top + r} L{x1},{base} Z'
+    )
+
+
 def fmt(value, decimals: int) -> str:
     return f'{float(value):,.{decimals}f}'
 
@@ -128,6 +141,10 @@ def build(chart: Chart) -> Chart:
     values = [float(p.value) for p in data_points]
     if chart.reference_value is not None:
         values.append(float(chart.reference_value))
+    has_bars = any(s.style == 'bars' and s.points for s in chart.series)
+    if has_bars:
+        # Bars grow from zero
+        values.append(0)
     low, high = min(values), max(values)
     if high - low < 1e-9:
         low, high = low - 1, high + 1
@@ -137,6 +154,10 @@ def build(chart: Chart) -> Chart:
 
     dates = [p.date for p in data_points]
     d_min, d_max = min(dates), max(dates)
+    if has_bars:
+        # Half a day of room so the outer bars aren't cut in half
+        d_min -= datetime.timedelta(days=1)
+        d_max += datetime.timedelta(days=1)
     if d_min == d_max:
         d_min -= datetime.timedelta(days=3)
         d_max += datetime.timedelta(days=3)
@@ -167,6 +188,12 @@ def build(chart: Chart) -> Chart:
         coords = [(x(p.date), y(p.value)) for p in series.points]
         if series.style == 'dots':
             chart.dots += [{'x': cx, 'y': cy, 'series': series.key} for cx, cy in coords]
+        elif series.style == 'bars':
+            slot = (chart.plot_right - chart.plot_left) / max(total_days, 1)
+            width = min(24, slot * 0.6)
+            base = y(0)
+            for cx, cy in coords:
+                chart.bars.append({'d': bar_path(cx - width / 2, cx + width / 2, cy, base)})
         else:
             d = 'M' + ' L'.join(f'{cx},{cy}' for cx, cy in coords)
             chart.paths.append({'d': d, 'series': series.key, 'style': series.style})
@@ -187,6 +214,7 @@ def build(chart: Chart) -> Chart:
         'x': x(last.date),
         'y': y(last.value),
         'label': f'{fmt(last.value, decimals)} {chart.unit}'.strip(),
+        'dot': main.style != 'bars',
     }
 
     # Hover: one column per date with every series' value on that day

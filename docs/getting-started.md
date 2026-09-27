@@ -74,6 +74,7 @@ The coach's rules (`wger/coach/rules/`):
 | V-taper | shoulder:waist ratio, waist and shoulder trends | more side delt volume if shoulders stall |
 | Muscle balance | weekly sets per focus area, push vs. pull | +1 set where a focus muscle gets <10 sets a week, or pulling lags pressing |
 | Stalled lifts | the last 3 sessions of each exercise | a variation if a lift stalls after its deload |
+| Activity | 7-day average steps, cardio minutes in the last 7 days | more steps below 8,000 a day; the morning walks when under 150 min a week |
 
 The dashboard refreshes them when you open it. For a nightly refresh (e.g. cron):
 `uv run python manage.py coach_run_rules`.
@@ -85,6 +86,10 @@ The dashboard refreshes them when you open it. For a nightly refresh (e.g. cron)
   The page charts your weight against the plan, your waist, and your **shoulder-to-waist ratio**
   (the V-taper, calculated for you; 1.6 is the classic target). Everything is also visible in wger's
   own Measurements and Gallery pages.
+- **Cardio & steps:** Coach → **Cardio & steps**. Log the day's steps and each walk (type, morning
+  or after lifting, minutes, incline %, speed). The page charts your daily steps against the goal
+  and lists the last 14 days. Steps go into wger's Steps measurement, so health-app imports land
+  in the same place.
 - **Goal:** Coach → **Goal** holds your target weight and date, weekly pace, protein, steps and
   focus areas. The seed command fills it in for you; new users set it there.
 

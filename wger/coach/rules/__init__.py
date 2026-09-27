@@ -37,6 +37,7 @@ from wger.coach.models import (
     Recommendation,
     RecommendationStatus,
 )
+from wger.coach.rules.activity import activity
 from wger.coach.rules.base import (
     Finding,
     RuleContext,
@@ -58,6 +59,7 @@ RULES = [
     v_taper,
     muscle_balance,
     stalled_lifts,
+    activity,
 ]
 
 DISMISS_DAYS = 14

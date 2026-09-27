@@ -243,3 +243,24 @@ def check_in_history(user: User, limit: int = 12) -> list[dict]:
         rows[point.date]['ratio'] = point.value
 
     return [{'date': d, **rows[d]} for d in sorted(rows, reverse=True)[:limit]]
+
+
+def steps_category(user: User) -> Category:
+    """
+    The user's typed steps category, shared with health-app imports
+    """
+    category, _ = Category.objects.get_or_create(
+        user=user,
+        metric_type=MetricType.STEPS,
+        defaults={'name': 'Steps', 'unit': ''},
+    )
+    return category
+
+
+def save_steps(user: User, date: datetime.date, steps: int) -> Measurement:
+    with transaction.atomic():
+        return _upsert(steps_category(user), user, date, Decimal(steps))
+
+
+def steps_series(user: User) -> list[Point]:
+    return category_series(user, steps_category(user))

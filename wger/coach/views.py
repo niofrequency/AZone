@@ -44,14 +44,18 @@ from wger.coach.body import (
     check_in_history,
     moving_average,
     save_check_in,
+    save_steps,
+    steps_series,
     vtaper_category,
     weight_series,
 )
 from wger.coach.forms import (
+    ActivityForm,
     CheckInForm,
     GoalForm,
 )
 from wger.coach.models import (
+    CardioSession,
     CoachGoal,
     Recommendation,
     RecommendationStatus,
@@ -258,3 +262,78 @@ def apply_recommendation(request, pk):
 def dismiss_recommendation(request, pk):
     actions.dismiss(_pending(request, pk))
     return redirect('coach:dashboard')
+
+
+def steps_chart(user, goal: CoachGoal | None, days: int = 28) -> charts.Chart:
+    since = timezone.localdate() - datetime.timedelta(days=days - 1)
+    steps = [p for p in steps_series(user) if p.date >= since]
+    target = goal.step_target if goal else 10000
+    return charts.build(
+        charts.Chart(
+            id='chart-steps',
+            title=f'Daily steps, last {days} days',
+            unit='',
+            decimals=0,
+            series=[charts.Series('steps', 'Steps', steps, style='bars')],
+            reference_value=target,
+            reference_label=f'Goal {target:,}',
+        )
+    )
+
+
+@login_required
+def cardio(request):
+    user = request.user
+    speed_unit = 'mph' if user.userprofile.weight_unit == 'lb' else 'kmh'
+
+    if request.method == 'POST':
+        form = ActivityForm(request.POST, speed_unit=speed_unit)
+        if form.is_valid():
+            data = form.cleaned_data
+            saved = []
+            if data['steps'] is not None:
+                save_steps(user, data['date'], data['steps'])
+                saved.append(f'{data["steps"]:,} steps')
+            if data['duration'] is not None:
+                session = CardioSession.objects.create(
+                    user=user,
+                    date=data['date'],
+                    kind=data['kind'],
+                    timing=data['timing'],
+                    duration=data['duration'],
+                    incline=data['incline'],
+                    speed=data['speed'],
+                    speed_unit=speed_unit,
+                    notes=data['notes'],
+                )
+                saved.append(f'{session.get_kind_display().lower()}, {session.summary}')
+            messages.success(request, f'Saved {" and ".join(saved)}.')
+            return redirect('coach:cardio')
+    else:
+        form = ActivityForm(speed_unit=speed_unit)
+
+    goal = get_goal(user)
+    ctx = RuleContext(user)
+    since = ctx.today - datetime.timedelta(days=13)
+    steps = {p.date: p.value for p in ctx.steps if p.date >= since}
+    sessions = CardioSession.objects.filter(user=user, date__gte=since)
+    by_day = {}
+    for session in sessions:
+        by_day.setdefault(session.date, []).append(session)
+    days = [
+        {
+            'date': day,
+            'steps': steps.get(day),
+            'sessions': by_day.get(day, []),
+            'minutes': sum(s.duration for s in by_day.get(day, [])),
+        }
+        for day in sorted(set(steps) | set(by_day), reverse=True)
+    ]
+    context = {
+        'form': form,
+        'goal': goal,
+        'days': days,
+        'chart': steps_chart(user, goal),
+        'tiles': dashboard_data.activity_tiles(ctx),
+    }
+    return render(request, 'coach/cardio.html', context)

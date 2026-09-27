@@ -30,8 +30,10 @@ from wger.coach import actions
 from wger.coach.body import (
     CheckIn,
     save_check_in,
+    save_steps,
 )
 from wger.coach.models import (
+    CardioSession,
     Recommendation,
     RecommendationStatus,
     Severity,
@@ -394,3 +396,40 @@ class DashboardViewTestCase(RulesTestCase):
         self.client.login(username='other', password='other-password')
         response = self.client.post(reverse('coach:apply', args=[rec.pk]))
         self.assertEqual(response.status_code, 404)
+
+
+class ActivityRuleTestCase(RulesTestCase):
+    def steps(self, values):
+        for i, value in enumerate(values):
+            save_steps(self.user, TODAY - datetime.timedelta(days=i), value)
+
+    def cardio(self, minutes, days):
+        for i in range(days):
+            CardioSession.objects.create(
+                user=self.user, date=TODAY - datetime.timedelta(days=i), duration=minutes
+            )
+
+    def test_steps(self):
+        self.steps([6000, 7000, 7500])
+        self.assertEqual(self.keys()['activity:steps_low'].title, 'Averaging 6,833 steps a day')
+
+    def test_steps_ok(self):
+        self.steps([9000, 11000, 10000, 12000])
+        self.assertIn('activity:steps_ok', self.keys())
+
+    def test_steps_need_three_days(self):
+        self.steps([3000, 3000])
+        keys = self.keys()
+        self.assertNotIn('activity:steps_low', keys)
+        self.assertNotIn('activity:steps_ok', keys)
+
+    def test_cardio(self):
+        self.assertIn('activity:cardio_low', self.keys())
+
+        self.cardio(35, 5)
+        CardioSession.objects.create(
+            user=self.user, date=TODAY - datetime.timedelta(days=8), duration=60
+        )
+        keys = self.keys()
+        self.assertEqual(keys['activity:cardio_ok'].title, '175 minutes of cardio this week')
+        self.assertNotIn('activity:cardio_low', keys)

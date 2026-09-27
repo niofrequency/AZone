@@ -26,6 +26,8 @@ from django.utils import timezone
 # wger
 from wger.coach.body import BODY_PARTS
 from wger.coach.models import (
+    CardioKind,
+    CardioTiming,
     CoachGoal,
     FocusArea,
 )
@@ -146,4 +148,63 @@ class CheckInForm(forms.Form):
         values = [data.get('weight'), data.get('photo'), *(data.get(k) for k in self.part_keys)]
         if not self.errors and all(v in (None, '') for v in values):
             raise ValidationError('Enter at least one value or a photo')
+        return data
+
+
+class ActivityForm(forms.Form):
+    """
+    A day's steps and/or one cardio session
+    """
+
+    date = forms.DateField(widget=DateInput(), initial=datetime.date.today)
+    steps = forms.IntegerField(
+        required=False,
+        min_value=0,
+        max_value=100000,
+        help_text='Total for the day, from your phone or watch',
+    )
+    kind = forms.ChoiceField(
+        label='Cardio',
+        choices=CardioKind.choices,
+        initial=CardioKind.INCLINE_WALK,
+    )
+    timing = forms.ChoiceField(label='When', choices=CardioTiming.choices)
+    duration = forms.IntegerField(
+        label='Duration (min)',
+        required=False,
+        min_value=1,
+        max_value=600,
+    )
+    incline = forms.DecimalField(
+        label='Incline (%)',
+        required=False,
+        min_value=0,
+        max_value=40,
+        max_digits=3,
+        decimal_places=1,
+    )
+    speed = forms.DecimalField(
+        required=False,
+        min_value=0,
+        max_value=50,
+        max_digits=4,
+        decimal_places=1,
+    )
+    notes = forms.CharField(required=False, max_length=200)
+
+    def __init__(self, *args, speed_unit='mph', **kwargs):
+        super().__init__(*args, **kwargs)
+        self.speed_unit = speed_unit
+        self.fields['speed'].label = f'Speed ({"mph" if speed_unit == "mph" else "km/h"})'
+
+    def clean_date(self):
+        date = self.cleaned_data['date']
+        if date > timezone.localdate() + datetime.timedelta(days=1):
+            raise ValidationError('Activity cannot be in the future')
+        return date
+
+    def clean(self):
+        data = super().clean()
+        if not self.errors and data.get('steps') is None and data.get('duration') is None:
+            raise ValidationError('Enter your steps, a cardio duration, or both')
         return data

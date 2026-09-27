@@ -53,7 +53,7 @@ is to keep the AZone fork public. For personal use only, you don't have to do an
 | PRD requirement | wger piece | Status |
 |---|---|---|
 | Daily steps (8k–10k) | Measurements with `MetricType.STEPS` (`wger/measurements/models/category.py`) | ✅ |
-| Incline walk: incline %, speed, duration | No cardio model. wger's workout log only has reps/weight | 🆕 small `CardioSession` model in `wger.coach` |
+| Incline walk: incline %, speed, duration | No cardio model. wger's workout log only has reps/weight | ✅ `CardioSession` model in `wger.coach` |
 
 ### Body tracking (what powers the "tell me what to fix" part)
 
@@ -211,7 +211,7 @@ Hosting it for yourself and friends: a small VPS (or Railway/Fly) running wger's
 | 3 | `double_progression` | Hitting 4×10 on Incline DB gives 4×8 at +5 lb next session | ✅ |
 | 4 | Coach models + check-in page | Weekly measurements & photos saved. V-taper ratio charted | ✅ `/coach/check-in/`, `/coach/goal/` |
 | 5 | Rules engine + dashboard | Recommendations appear, and "Apply" changes the routine or calorie goal | ✅ `/coach/` |
-| 6 | Cardio + steps | Cardio log and 7-day steps average on the dashboard | |
+| 6 | Cardio + steps | Cardio log and 7-day steps average on the dashboard | ✅ `/coach/cardio/` |
 | 7 | Deploy | Public URL, other people can sign up and set their own goals | |
 
 Each milestone gets tests in `wger/coach/tests/`, following wger's existing test style.

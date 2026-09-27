@@ -1,0 +1,23 @@
+{% comment %}Stat tiles, used by the dashboard and the cardio page{% endcomment %}
+<style>
+        .coach-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+        .coach-tile { border: 1px solid #e6e5e0; border-radius: 8px; padding: 10px 12px; background: #fcfcfb; }
+        .coach-tile-label { font-size: .8rem; color: #52514e; }
+        .coach-tile-value { font-size: 1.4rem; font-weight: 600; color: #0b0b0b; line-height: 1.3; }
+        .coach-tile-detail { font-size: .8rem; color: #52514e; }
+        .coach-tile-detail.tone-good { color: #1d6b2f; }
+        .coach-tile-detail.tone-warning { color: #9a4a00; }
+</style>
+<div class="coach-tiles mb-4">
+    {% for tile in tiles %}
+        <div class="coach-tile">
+            <div class="coach-tile-label">{{ tile.label }}</div>
+            <div class="coach-tile-value">{{ tile.value }}</div>
+            {% if tile.detail %}
+                <div class="coach-tile-detail {% if tile.tone %}tone-{{ tile.tone }}{% endif %}">
+                    {% if tile.tone == 'good' %}✓ {% elif tile.tone == 'warning' %}! {% endif %}{{ tile.detail }}
+                </div>
+            {% endif %}
+        </div>
+    {% endfor %}
+</div>

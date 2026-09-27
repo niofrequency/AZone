@@ -24,6 +24,10 @@ from dataclasses import dataclass
 from decimal import Decimal
 
 # wger
+from wger.coach.rules.activity import (
+    average_steps,
+    weekly_cardio_minutes,
+)
 from wger.coach.rules.base import RuleContext
 
 
@@ -103,7 +107,21 @@ def tiles(ctx: RuleContext) -> list[Tile]:
     if plan is not None and plan.goal_energy:
         energy = Decimal(today.energy) if today else Decimal(0)
         result.append(Tile('Calories today', f'{energy:,.0f}', f'of {plan.goal_energy:,} kcal'))
-    return result
+    return result + activity_tiles(ctx)
+
+
+def activity_tiles(ctx: RuleContext) -> list[Tile]:
+    target = ctx.goal.step_target if ctx.goal else 10000
+    steps = average_steps(ctx)
+    minutes = weekly_cardio_minutes(ctx)
+    return [
+        Tile(
+            'Steps, 7-day average',
+            f'{steps:,.0f}' if steps is not None else '–',
+            f'goal {target:,}',
+        ),
+        Tile('Cardio, last 7 days', f'{minutes} min', f'{len(ctx.cardio_week)} sessions'),
+    ]
 
 
 def next_workout(ctx: RuleContext):

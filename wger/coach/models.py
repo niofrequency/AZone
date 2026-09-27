@@ -198,3 +198,77 @@ class Recommendation(models.Model):
     @property
     def can_apply(self) -> bool:
         return bool(self.action) and self.status == RecommendationStatus.PENDING
+
+
+class CardioKind(models.TextChoices):
+    INCLINE_WALK = 'incline_walk', 'Incline walk (treadmill)'
+    OUTDOOR_WALK = 'outdoor_walk', 'Outdoor walk'
+    RUN = 'run', 'Run'
+    BIKE = 'bike', 'Bike'
+    STAIRS = 'stairs', 'Stair climber'
+    OTHER = 'other', 'Other'
+
+
+class CardioTiming(models.TextChoices):
+    MORNING = 'morning', 'Morning'
+    POST_WORKOUT = 'post_workout', 'After lifting'
+    OTHER = 'other', 'Other time'
+
+
+class CardioSession(models.Model):
+    """
+    Low-intensity cardio (NEAT). Speed is stored in `speed_unit`
+    """
+
+    class Meta:
+        ordering = ['-date', '-created']
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='cardio_sessions')
+    date = models.DateField(default=datetime.date.today)
+    kind = models.CharField(
+        max_length=20, choices=CardioKind.choices, default=CardioKind.INCLINE_WALK
+    )
+    timing = models.CharField(
+        max_length=20, choices=CardioTiming.choices, default=CardioTiming.MORNING
+    )
+    duration = models.PositiveIntegerField(
+        'Duration (min)',
+        validators=[MinValueValidator(1), MaxValueValidator(600)],
+    )
+    incline = models.DecimalField(
+        'Incline (%)',
+        max_digits=3,
+        decimal_places=1,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0), MaxValueValidator(40)],
+    )
+    speed = models.DecimalField(
+        max_digits=4,
+        decimal_places=1,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0), MaxValueValidator(50)],
+    )
+    speed_unit = models.CharField(
+        max_length=4,
+        choices=[('mph', 'mph'), ('kmh', 'km/h')],
+        default='mph',
+    )
+    notes = models.CharField(max_length=200, blank=True)
+    created = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'{self.user.username}: {self.get_kind_display()} {self.duration} min on {self.date}'
+
+    def get_owner_object(self):
+        return self
+
+    @property
+    def summary(self) -> str:
+        parts = [f'{self.duration} min']
+        if self.incline is not None:
+            parts.append(f'{float(self.incline):g}% incline')
+        if self.speed is not None:
+            parts.append(f'{float(self.speed):g} {self.get_speed_unit_display()}')
+        return ' · '.join(parts)

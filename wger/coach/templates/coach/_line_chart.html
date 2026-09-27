@@ -13,6 +13,8 @@
                         <svg width="18" height="10" aria-hidden="true">
                             {% if item.style == 'dots' %}
                                 <circle cx="9" cy="5" r="4" class="mark-dot"></circle>
+                            {% elif item.style == 'bars' %}
+                                <rect x="4" y="0" width="10" height="10" rx="2" class="mark-bar"></rect>
                             {% else %}
                                 <line x1="1" y1="5" x2="17" y2="5" class="mark-{{ item.style }}"></line>
                             {% endif %}
@@ -41,16 +43,24 @@
                     <text class="axis" x="{{ chart.plot_right|add:'6' }}" y="{{ chart.reference.y }}"
                           dominant-baseline="middle">{{ chart.reference.label }}</text>
                 {% endif %}
+                {% for bar in chart.bars %}
+                    <path d="{{ bar.d }}" class="mark-bar"></path>
+                {% endfor %}
                 {% for dot in chart.dots %}
                     <circle cx="{{ dot.x }}" cy="{{ dot.y }}" r="4" class="mark-dot"></circle>
                 {% endfor %}
                 {% for path in chart.paths %}
                     <path d="{{ path.d }}" class="mark-{{ path.style }}"></path>
                 {% endfor %}
-                <circle cx="{{ chart.end_label.x }}" cy="{{ chart.end_label.y }}" r="4.5"
-                        class="mark-end"></circle>
-                <text class="end-label" x="{{ chart.end_label.x|add:'10' }}" y="{{ chart.end_label.y }}"
-                      dominant-baseline="middle">{{ chart.end_label.label }}</text>
+                {% if chart.end_label.dot %}
+                    <circle cx="{{ chart.end_label.x }}" cy="{{ chart.end_label.y }}" r="4.5"
+                            class="mark-end"></circle>
+                    <text class="end-label" x="{{ chart.end_label.x|add:'10' }}" y="{{ chart.end_label.y }}"
+                          dominant-baseline="middle">{{ chart.end_label.label }}</text>
+                {% else %}
+                    <text class="end-label" x="{{ chart.end_label.x }}" y="{{ chart.end_label.y|add:'-6' }}"
+                          text-anchor="middle">{{ chart.end_label.label }}</text>
+                {% endif %}
                 <line class="crosshair" y1="{{ chart.plot_top }}" y2="{{ chart.plot_bottom }}"
                       x1="0" x2="0" visibility="hidden"></line>
                 <rect class="hit" x="{{ chart.plot_left }}" y="0"

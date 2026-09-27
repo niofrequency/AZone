@@ -39,10 +39,14 @@ from wger.coach.body import (
     Point,
     body_categories,
     category_series,
+    steps_series,
     vtaper_category,
     weight_series,
 )
-from wger.coach.models import CoachGoal
+from wger.coach.models import (
+    CardioSession,
+    CoachGoal,
+)
 from wger.manager.models import (
     Routine,
     SlotEntry,
@@ -136,6 +140,18 @@ class RuleContext:
     @cached_property
     def ratio_series(self) -> list[Point]:
         return category_series(self.user, vtaper_category(self.user, self.body_categories))
+
+    @cached_property
+    def steps(self) -> list[Point]:
+        return steps_series(self.user)
+
+    @cached_property
+    def cardio_week(self) -> list[CardioSession]:
+        """Cardio sessions of the last 7 days, today included"""
+        since = self.today - datetime.timedelta(days=6)
+        return list(
+            CardioSession.objects.filter(user=self.user, date__gte=since, date__lte=self.today)
+        )
 
     @cached_property
     def plan(self) -> NutritionPlan | None:

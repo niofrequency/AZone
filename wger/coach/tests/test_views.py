@@ -24,8 +24,14 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
 # wger
-from wger.coach.body import weight_series
-from wger.coach.models import CoachGoal
+from wger.coach.body import (
+    steps_series,
+    weight_series,
+)
+from wger.coach.models import (
+    CardioSession,
+    CoachGoal,
+)
 from wger.core.tests.base_testcase import WgerTestCase
 from wger.gallery.models import Image
 
@@ -153,3 +159,51 @@ class GoalViewTestCase(WgerTestCase):
 
         response = self.client.get(reverse('coach:check-in'))
         self.assertContains(response, 'Plan')
+
+
+class CardioViewTestCase(WgerTestCase):
+    def setUp(self):
+        super().setUp()
+        self.user = User.objects.create_user('lifter', password='lifter-password')
+        self.user.userprofile.weight_unit = 'lb'
+        self.user.userprofile.save()
+        self.client.login(username='lifter', password='lifter-password')
+        self.url = reverse('coach:cardio')
+
+    def post(self, **data):
+        return self.client.post(
+            self.url,
+            {'date': '2026-09-20', 'kind': 'incline_walk', 'timing': 'morning', **data},
+        )
+
+    def test_empty_page(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, 'Cardio &amp; steps')
+        self.assertContains(response, 'Nothing logged yet')
+
+    def test_steps_and_cardio(self):
+        response = self.post(steps='10432', duration='35', incline='12', speed='3.2')
+        self.assertRedirects(response, self.url)
+
+        self.assertEqual(steps_series(self.user)[0].value, Decimal(10432))
+        session = CardioSession.objects.get(user=self.user)
+        self.assertEqual(session.summary, '35 min · 12% incline · 3.2 mph')
+        self.assertEqual(session.speed_unit, 'mph')
+
+        # Same day again: steps are corrected, a second cardio session is added
+        self.post(steps='11000', duration='20', timing='post_workout')
+        self.assertEqual([p.value for p in steps_series(self.user)], [Decimal(11000)])
+        self.assertEqual(CardioSession.objects.filter(user=self.user).count(), 2)
+
+    def test_steps_only(self):
+        self.assertRedirects(self.post(steps='8000'), self.url)
+
+    def test_validation(self):
+        self.assertContains(self.post(), 'Enter your steps, a cardio duration, or both')
+        self.assertContains(self.post(steps='-5'), 'greater than or equal to 0')
+        self.assertContains(self.post(duration='35', incline='80'), 'less than or equal to 40')
+
+    def test_kg_users_log_kmh(self):
+        self.user.userprofile.weight_unit = 'kg'
+        self.user.userprofile.save()
+        self.assertContains(self.client.get(self.url), 'Speed (km/h)')
