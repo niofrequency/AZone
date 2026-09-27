@@ -107,7 +107,8 @@ Register it in `settings/settings_global.py` → `INSTALLED_APPS` next to `'wger
 
 ### 4.1 Models
 
-```python
+```text
+# Sketch of the models; the real ones are in wger/coach/models.py
 class CoachGoal(models.Model):
     user            = OneToOneField(User)
     target_weight   = DecimalField()          # 165

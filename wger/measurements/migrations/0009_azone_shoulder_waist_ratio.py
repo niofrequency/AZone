@@ -4,26 +4,25 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ("measurements", "0008_dynamic_type"),
+        ('measurements', '0008_dynamic_type'),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name="category",
-            name="dynamic_type",
+            model_name='category',
+            name='dynamic_type',
             field=models.CharField(
                 choices=[
-                    ("NONE", "None"),
-                    ("BMI", "BMI"),
-                    ("WHTR", "Waist-to-height ratio"),
-                    ("ONE_REP_MAX", "1RM"),
-                    ("ONE_RM_TOTAL", "1RM total"),
-                    ("SHOULDER_WAIST", "Shoulder-to-waist ratio"),
+                    ('NONE', 'None'),
+                    ('BMI', 'BMI'),
+                    ('WHTR', 'Waist-to-height ratio'),
+                    ('ONE_REP_MAX', '1RM'),
+                    ('ONE_RM_TOTAL', '1RM total'),
+                    ('SHOULDER_WAIST', 'Shoulder-to-waist ratio'),
                 ],
                 db_index=True,
-                default="NONE",
+                default='NONE',
                 max_length=20,
             ),
         ),
