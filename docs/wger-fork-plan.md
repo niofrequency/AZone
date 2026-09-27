@@ -37,7 +37,7 @@ is to keep the AZone fork public. For personal use only, you don't have to do an
 | Log sets, reps, weight | `WorkoutLog` (`wger/manager/models/log.py`) | ✅ |
 | RPE | wger stores **RIR** (reps in reserve). RPE = 10 − RIR, and `SetConfigData.rpe` already converts it | ✅ |
 | Week-over-week progression indicator | Logs store `weight_target` / `repetitions_target` alongside actual values, so the delta is already there | 🔧 add a "▲ +5 lb / +2 reps vs last week" badge in the coach dashboard |
-| Automatic progression | Rule-based `WeightConfig` etc. (for example "+5 lb every iteration if all reps hit"), **or** a custom Python class through `SlotEntry.class_name` → `wger/manager/config_calculations/` | 🆕 write a `double_progression` class (§4.2) |
+| Automatic progression | Rule-based `WeightConfig` etc. (for example "+5 lb every iteration if all reps hit"), **or** a custom Python class through `SlotEntry.class_name` → `wger/manager/config_calculations/` | ✅ `double_progression` (§4.2) |
 
 ### Module B: Nutrition & Protein
 
@@ -132,20 +132,29 @@ class Recommendation(models.Model):
 Because targets are stored per user (`CoachGoal`) and not hard-coded, **anyone can sign up**, enter their
 own weight and goal, and get their own targets. Your PRD values are just the defaults in the seed command.
 
-### 4.2 Progression: `wger/manager/config_calculations/double_progression.py`
+### 4.2 Progression: `double_progression` ✅
 
-wger lets any `SlotEntry` hand its progression logic to a Python class (see `dummy.py` in the same folder).
-Set `SlotEntry.class_name = "double_progression"` on your exercises.
+wger lets any `SlotEntry` hand its progression logic to a Python class (`SlotEntry.class_name`).
+The seed command sets `class_name = "double_progression"` on every exercise. The entry point is
+`wger/manager/config_calculations/double_progression.py`, and the logic is in `wger/coach/progression.py`.
 
-Logic:
-1. Look at the last session's logs for this entry.
-2. If **every set reached the top of the rep range** (for example 10 on a 8–10) at RIR ≥ 1, add weight
-   (+5 lb dumbbells/cables, +10 lb machines, from `SlotEntry.config`) and reset to the bottom of the range.
-3. Otherwise keep the weight and aim for +1 rep.
-4. If reps dropped for 2 sessions in a row → return a lighter week (−10% weight) and let the coach
-   log a "deload" recommendation.
+For each session, the targets come from what was logged in the previous session of that day:
+1. **Every set reached the top of the rep range** (for example 4 × 10 on 8–10): add weight and go back to
+   the bottom of the range. The increment is per exercise in `SlotEntry.config`: +5 lb for dumbbells and
+   cables, +10 lb for most machines, +20 lb for leg press. It's halved in kg.
+2. **Every set reached the current rep target:** same weight, aim for one more rep (8–10 → 9–10 → 10).
+3. **Otherwise** the same targets again.
+4. **Three sessions in a row without more total reps at the same weight:** a one-session deload
+   (−10% weight, bottom of the range, with a "Deload" note on the exercise).
 
-The class returns `SetConfigData(...)`, so wger's UI and mobile app show the new targets with no other changes.
+It follows the weight you actually used (the weight most sets were done with). kg logs are converted
+for lb exercises. Body-weight exercises with no weight logged progress by reps only.
+
+Two small changes to wger itself make this possible. Custom classes now get the `slot_entry` (to read
+its config), and only the routine owner's logs, the same user filter wger's built-in rules already use.
+
+The class returns `SetConfigData(...)`, so wger's routine view, table, gym mode, API and mobile app all
+show the new targets with no other changes.
 
 ### 4.3 Rules engine: "what to fix"
 
@@ -199,7 +208,7 @@ Hosting it for yourself and friends: a small VPS (or Railway/Fly) running wger's
 |---|---|---|---|
 | 1 | Fork runs locally | You can sign up, log an Upper A workout, and log a meal | ✅ |
 | 2 | Seed command | One command sets up your full PRD routine and nutrition plan | ✅ `seed_aesthetic165` |
-| 3 | `double_progression` | Hitting 4×10 on Incline DB gives 4×8 at +5 lb next session | |
+| 3 | `double_progression` | Hitting 4×10 on Incline DB gives 4×8 at +5 lb next session | ✅ |
 | 4 | Coach models + check-in page | Weekly measurements & photos saved. V-taper ratio charted | |
 | 5 | Rules engine + dashboard | Recommendations appear, and "Apply" changes the routine or calorie goal | |
 | 6 | Cardio + steps | Cardio log and 7-day steps average on the dashboard | |

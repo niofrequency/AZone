@@ -62,6 +62,7 @@ UPPER_A = DaySpec(
             rir=2,
             rest=120,
             notes='Drive elbows down toward the hips; lean back slightly at full contraction.',
+            increment_lb=10,
         ),
         ExerciseSpec(
             uuid='09dd3e3c-e53a-4e2c-a2e3-645d334f53e2',
@@ -124,6 +125,7 @@ LOWER_B = DaySpec(
             rir=2,
             rest=150,
             notes='Feet low on the platform; drive knees forward over toes for quad bias.',
+            increment_lb=10,
         ),
         ExerciseSpec(
             uuid='440a5184-de58-4a86-a7ba-76ddeafaa855',
@@ -135,6 +137,7 @@ LOWER_B = DaySpec(
             rir=1,
             rest=90,
             notes='Squeeze hamstrings hard at the bottom; 2-second negative.',
+            increment_lb=10,
         ),
         ExerciseSpec(
             uuid='66a42396-c207-44da-bc75-758a89d32404',
@@ -146,6 +149,7 @@ LOWER_B = DaySpec(
             rir=2,
             rest=120,
             notes='Controlled descent; keep the lower back flat against the pad.',
+            increment_lb=20,
         ),
         ExerciseSpec(
             uuid='62170477-90ec-463c-907e-9e523abc0a15',
@@ -157,6 +161,7 @@ LOWER_B = DaySpec(
             rir=1,
             rest=60,
             notes='Hold a 1-second squeeze at peak extension.',
+            increment_lb=10,
         ),
         ExerciseSpec(
             uuid='7ce443b6-eb84-4f65-b05f-461c1cc8bcc0',
@@ -168,6 +173,7 @@ LOWER_B = DaySpec(
             rir=1,
             rest=60,
             notes='Pause 2 seconds in the bottom stretch before raising up.',
+            increment_lb=10,
         ),
     ],
 )

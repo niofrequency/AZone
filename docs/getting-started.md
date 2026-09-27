@@ -36,7 +36,7 @@ This creates:
 
 | What | Details |
 |---|---|
-| Routine "Aesthetic 165" | 12 weeks, repeating **Upper A → Lower B → Rest** (4–5 sessions/week). Every exercise has its sets, rep range, RIR (RPE = 10 − RIR), rest time and form notes from the PRD |
+| Routine "Aesthetic 165" | 12 weeks, repeating **Upper A → Lower B → Rest** (4–5 sessions/week). Every exercise has its sets, rep range, RIR (RPE = 10 − RIR), rest time and form notes from the PRD, and progresses automatically (see below) |
 | Nutrition plan "Aesthetic 165 - cut" | 1,900 kcal · 165 g protein · 165 g carbs · 52 g fat · 30 g fiber, with Breakfast / Lunch / Pre-workout / Dinner meals |
 | Measurements | Waist, Chest, Shoulders, Arms, Thighs (inches) and Steps |
 | Body weight | Today's weight, if `--current-weight` is given. Your profile is switched to lb |
@@ -60,7 +60,25 @@ session, so the exercises keep progressing in order.
 - **Meals:** Nutrition → Aesthetic 165 - cut → log to a meal. Protein and calorie totals are shown against the goals.
 - **Body:** Body weight for daily weigh-ins, and Measurements for waist/shoulders/steps.
 
-## 4. Tests
+## 4. How the weights go up
+
+Every exercise uses **double progression** (`wger/coach/progression.py`). After each session:
+
+| You logged | Next session |
+|---|---|
+| Every set at the top of the range (4 × 10 on 8–10) | +5 lb (dumbbells/cables), +10 lb (machines) or +20 lb (leg press), back to 8 reps |
+| Every set hit the current target | Same weight, one more rep (8–10 → 9–10 → 10) |
+| Fewer reps than the target | Same targets again |
+| No more total reps at the same weight 3 sessions in a row | Deload: −10% weight for one session |
+
+The first time you do an exercise there's no weight target. Log what you lifted, and the next
+session builds from there. If you lift heavier than prescribed, the app follows you. You can see
+upcoming targets under Training → your routine → **Table**.
+
+To change an exercise's increment, edit `increment_lb` in `wger/coach/programs/aesthetic165.py`
+and re-run the seed command with `--replace`.
+
+## 5. Tests
 
 ```bash
 DJANGO_SETTINGS_MODULE=settings.ci uv run python manage.py test wger.coach

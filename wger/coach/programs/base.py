@@ -47,6 +47,12 @@ class ExerciseSpec:
     notes: str = ''
     """Form and technique notes, shown next to the exercise"""
 
+    increment_lb: float = 5
+    """
+    Weight added once every set reaches the top of the rep range. Halved when
+    the program is set up in kg
+    """
+
 
 @dataclass(frozen=True)
 class DaySpec:

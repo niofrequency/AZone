@@ -56,6 +56,7 @@ class AbstractSetCalculations(ABC):
         rest_configs: list[AbstractChangeConfig],
         max_rest_configs: list[AbstractChangeConfig],
         logs: list[WorkoutLog],
+        slot_entry=None,
     ):
         self.iteration = iteration
         self.sets_configs = sets_configs
@@ -69,6 +70,8 @@ class AbstractSetCalculations(ABC):
         self.rest_configs = rest_configs
         self.max_rest_configs = max_rest_configs
         self.logs = logs
+        self.slot_entry = slot_entry
+        """The SlotEntry being calculated, e.g. to read its `config` JSON"""
 
     @abstractmethod
     def calculate(self) -> SetConfigData:

@@ -413,7 +413,8 @@ class SlotEntry(models.Model):
                 max_rir_configs=self.maxrirconfig_set.filter(iteration__lte=iteration),
                 rest_configs=self.restconfig_set.filter(iteration__lte=iteration),
                 max_rest_configs=self.maxrestconfig_set.filter(iteration__lte=iteration),
-                logs=self.workoutlog_set.filter(iteration__lte=iteration),
+                logs=[log for log in logs if log.iteration <= iteration],
+                slot_entry=self,
             )
 
             return custom_logic.calculate()

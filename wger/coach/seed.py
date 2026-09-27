@@ -175,11 +175,15 @@ def _create_routine(
 
         for slot_order, spec in enumerate(day_spec.exercises, start=1):
             slot = Slot.objects.create(day=day, order=slot_order, comment=spec.notes)
+            increment = spec.increment_lb if weight_unit == 'lb' else spec.increment_lb / 2
             entry = SlotEntry.objects.create(
                 slot=slot,
                 exercise=exercises[spec.uuid],
                 order=1,
                 weight_unit_id=weight_unit_id,
+                # See wger/coach/progression.py
+                class_name='double_progression',
+                config={'increment': increment},
             )
             for config_class, value in (
                 (SetsConfig, spec.sets),
