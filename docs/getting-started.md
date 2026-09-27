@@ -56,6 +56,28 @@ session, so the exercises keep progressing in order.
 
 ## 3. Daily use
 
+Start at **Coach → Dashboard** (`/coach/`). It shows your 7-day average weight, weekly pace, what's
+left to go, your V-taper ratio and today's protein and calories, plus:
+
+- **What to work on:** adjustments the coach suggests. Most have a button that makes the change
+  for you (lower the calorie goal by 150 kcal, add a set to an exercise). **Dismiss** hides one
+  for two weeks.
+- **Status:** what's going well and notes to keep in mind.
+- **Next workout** and **Last session vs. the one before** (▲ +5 lb, +2 reps).
+
+The coach's rules (`wger/coach/rules/`):
+
+| Rule | Looks at | Suggests |
+|---|---|---|
+| Weight trend | this week's vs. last week's average weight | cut or add 150 kcal when you're too slow or too fast |
+| Nutrition | protein and calories of the last 7 logged days | more protein when you're >15 g short |
+| V-taper | shoulder:waist ratio, waist and shoulder trends | more side delt volume if shoulders stall |
+| Muscle balance | weekly sets per focus area, push vs. pull | +1 set where a focus muscle gets <10 sets a week, or pulling lags pressing |
+| Stalled lifts | the last 3 sessions of each exercise | a variation if a lift stalls after its deload |
+
+The dashboard refreshes them when you open it. For a nightly refresh (e.g. cron):
+`uv run python manage.py coach_run_rules`.
+
 - **Workouts:** Training → your routine → start the day (gym mode) and log weight, reps and RIR for each set.
 - **Meals:** Nutrition → Aesthetic 165 - cut → log to a meal. Protein and calorie totals are shown against the goals.
 - **Body:** Coach → **Weekly check-in**. Log your weight (daily is best; the 7-day average is what's

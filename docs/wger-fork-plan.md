@@ -36,7 +36,7 @@ is to keep the AZone fork public. For personal use only, you don't have to do an
 | Form & technique notes | `SlotEntry.comment` / `Slot.comment` | ✅ |
 | Log sets, reps, weight | `WorkoutLog` (`wger/manager/models/log.py`) | ✅ |
 | RPE | wger stores **RIR** (reps in reserve). RPE = 10 − RIR, and `SetConfigData.rpe` already converts it | ✅ |
-| Week-over-week progression indicator | Logs store `weight_target` / `repetitions_target` alongside actual values, so the delta is already there | 🔧 add a "▲ +5 lb / +2 reps vs last week" badge in the coach dashboard |
+| Week-over-week progression indicator | Logs store `weight_target` / `repetitions_target` alongside actual values, so the delta is already there | ✅ "Last session vs. the one before" on the coach dashboard |
 | Automatic progression | Rule-based `WeightConfig` etc. (for example "+5 lb every iteration if all reps hit"), **or** a custom Python class through `SlotEntry.class_name` → `wger/manager/config_calculations/` | ✅ `double_progression` (§4.2) |
 
 ### Module B: Nutrition & Protein
@@ -46,7 +46,7 @@ is to keep the AZone fork public. For personal use only, you don't have to do an
 | Protein 150–175 g, ~1,800–2,000 kcal, carbs, fat | `NutritionPlan.goal_protein / goal_energy / goal_carbohydrates / goal_fat` (`wger/nutrition/models/plan.py`) | ✅ |
 | Meal logger | `LogItem` + Open Food Facts ingredient DB | ✅ |
 | Meal pre-sets (Breakfast / Lunch / Pre-WO / Dinner) | `Meal` + `MealItem` inside a plan. You can log a whole planned meal in one tap | ✅ create your 4 meals once |
-| Deficit that adapts to your real weight trend | Not present | 🆕 the calorie adjuster in the coach (§4.3) |
+| Deficit that adapts to your real weight trend | Not present | ✅ weight trend rule + "Apply" changes the calorie goal (§4.3) |
 
 ### Module C: Cardio / NEAT
 
@@ -210,7 +210,7 @@ Hosting it for yourself and friends: a small VPS (or Railway/Fly) running wger's
 | 2 | Seed command | One command sets up your full PRD routine and nutrition plan | ✅ `seed_aesthetic165` |
 | 3 | `double_progression` | Hitting 4×10 on Incline DB gives 4×8 at +5 lb next session | ✅ |
 | 4 | Coach models + check-in page | Weekly measurements & photos saved. V-taper ratio charted | ✅ `/coach/check-in/`, `/coach/goal/` |
-| 5 | Rules engine + dashboard | Recommendations appear, and "Apply" changes the routine or calorie goal | |
+| 5 | Rules engine + dashboard | Recommendations appear, and "Apply" changes the routine or calorie goal | ✅ `/coach/` |
 | 6 | Cardio + steps | Cardio log and 7-day steps average on the dashboard | |
 | 7 | Deploy | Public URL, other people can sign up and set their own goals | |
 

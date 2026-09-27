@@ -21,13 +21,19 @@ import datetime
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import (
+    get_object_or_404,
     redirect,
     render,
 )
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 
 # wger
-from wger.coach import charts
+from wger.coach import (
+    actions,
+    charts,
+    dashboard as dashboard_data,
+)
 from wger.coach.body import (
     BODY_PARTS,
     VTAPER_TARGET,
@@ -45,7 +51,14 @@ from wger.coach.forms import (
     CheckInForm,
     GoalForm,
 )
-from wger.coach.models import CoachGoal
+from wger.coach.models import (
+    CoachGoal,
+    Recommendation,
+    RecommendationStatus,
+    Severity,
+)
+from wger.coach.rules import run_rules
+from wger.coach.rules.base import RuleContext
 
 
 def get_goal(user) -> CoachGoal | None:
@@ -193,3 +206,55 @@ def goal(request):
         form = GoalForm(instance=instance, initial=initial, unit=unit)
 
     return render(request, 'coach/goal.html', {'form': form, 'goal': instance, 'unit': unit})
+
+
+@login_required
+def dashboard(request):
+    user = request.user
+    goal = get_goal(user)
+    recommendations = run_rules(user)
+    ctx = RuleContext(user)
+
+    todo = [r for r in recommendations if r.severity in (Severity.ADJUST, Severity.WARNING)]
+    status = [r for r in recommendations if r.severity in (Severity.GOOD, Severity.INFO)]
+    order = {Severity.WARNING: 0, Severity.ADJUST: 1, Severity.INFO: 2, Severity.GOOD: 3}
+
+    context = {
+        'goal': goal,
+        'tiles': dashboard_data.tiles(ctx),
+        'todo': sorted(todo, key=lambda r: order[r.severity]),
+        'status': sorted(status, key=lambda r: order[r.severity]),
+        'chart': weight_chart(user, goal),
+        'next_workout': dashboard_data.next_workout(ctx),
+        'routine': ctx.routine,
+        'progress': dashboard_data.recent_progress(ctx),
+        'plan': ctx.plan,
+    }
+    return render(request, 'coach/dashboard.html', context)
+
+
+def _pending(request, pk) -> Recommendation:
+    return get_object_or_404(
+        Recommendation,
+        pk=pk,
+        user=request.user,
+        status=RecommendationStatus.PENDING,
+    )
+
+
+@login_required
+@require_POST
+def apply_recommendation(request, pk):
+    recommendation = _pending(request, pk)
+    try:
+        messages.success(request, actions.apply(recommendation))
+    except actions.ActionError as e:
+        messages.error(request, str(e))
+    return redirect('coach:dashboard')
+
+
+@login_required
+@require_POST
+def dismiss_recommendation(request, pk):
+    actions.dismiss(_pending(request, pk))
+    return redirect('coach:dashboard')

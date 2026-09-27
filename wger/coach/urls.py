@@ -22,6 +22,9 @@ from wger.coach import views
 
 
 urlpatterns = [
+    path('', views.dashboard, name='dashboard'),
+    path('recommendation/<int:pk>/apply/', views.apply_recommendation, name='apply'),
+    path('recommendation/<int:pk>/dismiss/', views.dismiss_recommendation, name='dismiss'),
     path('check-in/', views.check_in, name='check-in'),
     path('goal/', views.goal, name='goal'),
 ]

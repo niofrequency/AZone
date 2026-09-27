@@ -141,3 +141,60 @@ class CoachGoal(models.Model):
             return self.target_weight
         progress = min(max((date - self.start_date).days / total_days, 0), 1)
         return self.start_weight + (self.target_weight - self.start_weight) * Decimal(progress)
+
+
+class Severity(models.TextChoices):
+    GOOD = 'good', 'On track'
+    INFO = 'info', 'Note'
+    ADJUST = 'adjust', 'Adjustment'
+    WARNING = 'warning', 'Warning'
+
+
+class RecommendationStatus(models.TextChoices):
+    PENDING = 'pending', 'Pending'
+    APPLIED = 'applied', 'Applied'
+    DISMISSED = 'dismissed', 'Dismissed'
+
+
+class Recommendation(models.Model):
+    """
+    Something the coach noticed, see wger/coach/rules. `key` identifies the
+    finding across runs, so a rule that keeps firing updates one row instead
+    of piling up new ones
+    """
+
+    class Meta:
+        ordering = ['-created']
+        indexes = [models.Index(fields=['user', 'status'])]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='coach_recommendations')
+    created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
+    resolved = models.DateTimeField(null=True, blank=True)
+
+    rule = models.CharField(max_length=40)
+    key = models.CharField(max_length=120)
+    severity = models.CharField(max_length=10, choices=Severity.choices)
+    title = models.CharField(max_length=200)
+    body = models.TextField(blank=True)
+
+    action = models.JSONField(null=True, blank=True)
+    """Machine-readable change, see wger.coach.actions"""
+
+    action_label = models.CharField(max_length=60, blank=True)
+
+    status = models.CharField(
+        max_length=10,
+        choices=RecommendationStatus.choices,
+        default=RecommendationStatus.PENDING,
+    )
+
+    def __str__(self):
+        return f'{self.user.username}: {self.title}'
+
+    def get_owner_object(self):
+        return self
+
+    @property
+    def can_apply(self) -> bool:
+        return bool(self.action) and self.status == RecommendationStatus.PENDING
