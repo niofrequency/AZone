@@ -58,7 +58,13 @@ session, so the exercises keep progressing in order.
 
 - **Workouts:** Training → your routine → start the day (gym mode) and log weight, reps and RIR for each set.
 - **Meals:** Nutrition → Aesthetic 165 - cut → log to a meal. Protein and calorie totals are shown against the goals.
-- **Body:** Body weight for daily weigh-ins, and Measurements for waist/shoulders/steps.
+- **Body:** Coach → **Weekly check-in**. Log your weight (daily is best; the 7-day average is what's
+  charted), waist, shoulders, chest, arms and thighs once a week, and optionally a progress photo.
+  The page charts your weight against the plan, your waist, and your **shoulder-to-waist ratio**
+  (the V-taper, calculated for you; 1.6 is the classic target). Everything is also visible in wger's
+  own Measurements and Gallery pages.
+- **Goal:** Coach → **Goal** holds your target weight and date, weekly pace, protein, steps and
+  focus areas. The seed command fills it in for you; new users set it there.
 
 ## 4. How the weights go up
 

@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}{% if goal %}Edit your goal{% else %}Set your goal{% endif %}{% endblock %}
+
+{% block content %}
+    <form method="post" class="card card-body">
+        {% csrf_token %}
+        <div class="row">
+            <div class="col-sm-6">{{ form.start_date|as_crispy_field }}</div>
+            <div class="col-sm-6">{{ form.start_weight|as_crispy_field }}</div>
+            <div class="col-sm-6">{{ form.target_date|as_crispy_field }}</div>
+            <div class="col-sm-6">{{ form.target_weight|as_crispy_field }}</div>
+            <div class="col-sm-6">{{ form.rate_min_per_week|as_crispy_field }}</div>
+            <div class="col-sm-6">{{ form.rate_max_per_week|as_crispy_field }}</div>
+            <div class="col-sm-6">{{ form.protein_target|as_crispy_field }}</div>
+            <div class="col-sm-6">{{ form.step_target|as_crispy_field }}</div>
+        </div>
+        {{ form.focus|as_crispy_field }}
+        <button type="submit" class="btn btn-primary">Save goal</button>
+    </form>
+{% endblock %}
+
+{% block sidebar %}
+    <div class="card card-body mt-3 small">
+        <h3 class="h6">Picking the numbers</h3>
+        <ul class="ps-3 mb-0">
+            <li>A cut of 0.5–1% of body weight per week keeps muscle. For 179 lb that's about 1–1.5 lb.</li>
+            <li>Protein: about 1 g per lb of goal weight.</li>
+            <li>Weights are in {{ unit }}, like your profile. Change the unit in your profile settings.</li>
+        </ul>
+    </div>
+{% endblock %}

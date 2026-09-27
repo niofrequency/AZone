@@ -62,8 +62,8 @@ is to keep the AZone fork public. For personal use only, you don't have to do an
 | Body weight (179 → 165) | `MetricType.BODY_WEIGHT` measurements | ✅ |
 | Waist, chest, shoulders, arms, thighs | Custom measurement categories | ✅ create them |
 | Progress photos | `wger.gallery` | ✅ |
-| Shoulder-to-waist ratio (V-taper) | Pluggable "dynamic measurements" (`wger/measurements/dynamic/types.py` already has BMI, waist-to-height, 1RM) | 🆕 add a `SHOULDER_WAIST` dynamic type (copy `WaistToHeightRatio`) |
-| Target weight / goal date | `UserProfile` has height, age and activity but **no goal** | 🆕 `CoachGoal` model |
+| Shoulder-to-waist ratio (V-taper) | Pluggable "dynamic measurements" (`wger/measurements/dynamic/types.py` already has BMI, waist-to-height, 1RM) | ✅ `SHOULDER_WAIST` type in `wger/coach/dynamic.py` |
+| Target weight / goal date | `UserProfile` has height, age and activity but **no goal** | ✅ `CoachGoal` model |
 
 ### Data schema (PRD §6)
 
@@ -209,7 +209,7 @@ Hosting it for yourself and friends: a small VPS (or Railway/Fly) running wger's
 | 1 | Fork runs locally | You can sign up, log an Upper A workout, and log a meal | ✅ |
 | 2 | Seed command | One command sets up your full PRD routine and nutrition plan | ✅ `seed_aesthetic165` |
 | 3 | `double_progression` | Hitting 4×10 on Incline DB gives 4×8 at +5 lb next session | ✅ |
-| 4 | Coach models + check-in page | Weekly measurements & photos saved. V-taper ratio charted | |
+| 4 | Coach models + check-in page | Weekly measurements & photos saved. V-taper ratio charted | ✅ `/coach/check-in/`, `/coach/goal/` |
 | 5 | Rules engine + dashboard | Recommendations appear, and "Apply" changes the routine or calorie goal | |
 | 6 | Cardio + steps | Cardio log and 7-day steps average on the dashboard | |
 | 7 | Deploy | Public URL, other people can sign up and set their own goals | |

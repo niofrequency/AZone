@@ -119,5 +119,10 @@ class Command(BaseCommand):
         )
         self.stdout.write(f'  Meals:     {", ".join(m.name for m in plan.meal_set.all())}')
         self.stdout.write(f'  Measure:   {", ".join(c.name for c in result.categories)}')
+        if result.goal:
+            goal = result.goal
+            self.stdout.write(
+                f'  Goal:      {goal.target_weight} {goal.weight_unit} by {goal.target_date}'
+            )
         if result.body_weight:
             self.stdout.write(f'  Weight:    {result.body_weight.value} {options["unit"]} logged')

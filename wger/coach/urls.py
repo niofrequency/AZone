@@ -15,13 +15,13 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 # Django
-from django.apps import AppConfig
+from django.urls import path
+
+# wger
+from wger.coach import views
 
 
-class CoachConfig(AppConfig):
-    name = 'wger.coach'
-    verbose_name = 'Coach'
-
-    def ready(self):
-        # Registers the calculated measurement types
-        import wger.coach.dynamic  # noqa: F401
+urlpatterns = [
+    path('check-in/', views.check_in, name='check-in'),
+    path('goal/', views.goal, name='goal'),
+]

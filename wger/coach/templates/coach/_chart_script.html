@@ -1,0 +1,99 @@
+{% comment %}
+    Styles and hover crosshair for coach/_line_chart.html. Include once per page.
+{% endcomment %}
+<style>
+    .coach-chart {
+        --chart-surface: #fcfcfb;
+        --chart-grid: #e6e5e0;
+        --chart-text: #52514e;
+        --chart-ink: #0b0b0b;
+        --chart-series: #2a78d6;
+        --chart-reference: #8f8e88;
+        background: var(--chart-surface);
+        border: 1px solid var(--chart-grid);
+        border-radius: 8px;
+        padding: 12px 12px 4px;
+    }
+    .coach-chart-title { font-weight: 600; color: var(--chart-ink); margin-bottom: 4px; }
+    .coach-chart-empty { color: var(--chart-text); font-size: .9rem; margin: 8px 0 12px; }
+    .coach-chart-legend {
+        list-style: none; padding: 0; margin: 0 0 4px; display: flex; flex-wrap: wrap;
+        gap: 4px 16px; font-size: .8rem; color: var(--chart-text);
+    }
+    .coach-chart-legend li { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+    .coach-chart-legend svg { width: 18px; height: 10px; flex: none; }
+    .coach-chart-plot { position: relative; }
+    .coach-chart-plot svg { width: 100%; height: auto; display: block; overflow: visible; }
+    .coach-chart .grid { stroke: var(--chart-grid); stroke-width: 1; shape-rendering: crispEdges; }
+    .coach-chart .axis { fill: var(--chart-text); font-size: 11px; }
+    .coach-chart .end-label { fill: var(--chart-ink); font-size: 12px; font-weight: 600; }
+    .coach-chart .mark-line {
+        fill: none; stroke: var(--chart-series); stroke-width: 2;
+        stroke-linejoin: round; stroke-linecap: round;
+    }
+    .coach-chart .mark-reference {
+        fill: none; stroke: var(--chart-reference); stroke-width: 1.5; stroke-linecap: round;
+    }
+    .coach-chart .mark-target { stroke: var(--chart-reference); stroke-width: 1; }
+    .coach-chart .mark-dot {
+        fill: var(--chart-series); fill-opacity: .35; stroke: var(--chart-surface); stroke-width: 2;
+    }
+    .coach-chart .mark-end { fill: var(--chart-series); stroke: var(--chart-surface); stroke-width: 2; }
+    .coach-chart .crosshair { stroke: var(--chart-text); stroke-width: 1; }
+    .coach-chart-tooltip {
+        position: absolute; top: 0; pointer-events: none; background: #fff;
+        border: 1px solid var(--chart-grid); border-radius: 6px; padding: 6px 8px;
+        font-size: .8rem; color: var(--chart-ink); box-shadow: 0 2px 8px rgba(0, 0, 0, .08);
+        white-space: nowrap;
+    }
+    .coach-chart-tooltip .tt-date { color: var(--chart-text); margin-bottom: 2px; }
+</style>
+<script>
+    document.querySelectorAll('.coach-chart').forEach((figure) => {
+        const dataEl = document.getElementById(figure.id + '-data');
+        if (!dataEl) {
+            return;
+        }
+        const columns = JSON.parse(dataEl.textContent);
+        const svg = figure.querySelector('.coach-chart-plot svg');
+        const hit = svg.querySelector('.hit');
+        const crosshair = svg.querySelector('.crosshair');
+        const tooltip = figure.querySelector('.coach-chart-tooltip');
+
+        const show = (event) => {
+            const point = svg.createSVGPoint();
+            point.x = event.clientX;
+            point.y = event.clientY;
+            const x = point.matrixTransform(svg.getScreenCTM().inverse()).x;
+            const column = columns.reduce((best, c) =>
+                Math.abs(c.x - x) < Math.abs(best.x - x) ? c : best);
+
+            crosshair.setAttribute('x1', column.x);
+            crosshair.setAttribute('x2', column.x);
+            crosshair.setAttribute('visibility', 'visible');
+
+            tooltip.replaceChildren();
+            const date = document.createElement('div');
+            date.className = 'tt-date';
+            date.textContent = column.date;
+            tooltip.append(date);
+            for (const [label, value] of Object.entries(column.values)) {
+                const row = document.createElement('div');
+                row.textContent = `${label}: ${value}`;
+                tooltip.append(row);
+            }
+            tooltip.hidden = false;
+
+            const scale = svg.getBoundingClientRect().width / svg.viewBox.baseVal.width;
+            const left = column.x * scale;
+            const flip = left + tooltip.offsetWidth + 12 > svg.getBoundingClientRect().width;
+            tooltip.style.left = (flip ? left - tooltip.offsetWidth - 12 : left + 12) + 'px';
+        };
+        const hide = () => {
+            crosshair.setAttribute('visibility', 'hidden');
+            tooltip.hidden = true;
+        };
+        hit.addEventListener('pointermove', show);
+        hit.addEventListener('pointerleave', hide);
+    });
+</script>

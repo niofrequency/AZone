@@ -280,6 +280,7 @@ urlpatterns = i18n_patterns(
     path('gym/', include(('wger.gym.urls', 'gym'), namespace='gym')),
     path('gallery/', include(('wger.gallery.urls', 'gallery'), namespace='gallery')),
     path('trophies/', include(('wger.trophies.urls', 'trophies'), namespace='trophies')),
+    path('coach/', include(('wger.coach.urls', 'coach'), namespace='coach')),
     path(
         'measurement/',
         include(('wger.measurements.urls', 'measurements'), namespace='measurements'),

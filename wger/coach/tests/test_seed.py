@@ -157,6 +157,18 @@ class SeedProgramTestCase(WgerTestCase):
         self.assertTrue({'Waist', 'Chest', 'Shoulders', 'Arms', 'Thighs', 'Steps'} <= names)
         self.assertEqual(Category.objects.get(user=self.user, name='Steps').metric_type, 'steps')
 
+        self.assertIn('Shoulder:waist ratio', names)
+
+        goal = result.goal
+        self.assertEqual(goal.start_weight, Decimal('179'))
+        self.assertEqual(goal.target_weight, Decimal('165'))
+        self.assertEqual(goal.target_date, self.start + datetime.timedelta(weeks=12))
+        self.assertEqual(goal.focus, ['upper_chest', 'lats', 'side_delts', 'abs'])
+
+        # Re-running without a weight keeps the start weight
+        goal = seed_program(self.user, self.program, start=self.start, replace=True).goal
+        self.assertEqual(goal.start_weight, Decimal('179'))
+
         self.assertEqual(result.body_weight.value, Decimal('179'))
         self.assertEqual(result.body_weight.category.metric_type, 'body_weight')
         self.user.userprofile.refresh_from_db()

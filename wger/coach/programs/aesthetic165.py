@@ -30,6 +30,7 @@ import datetime
 from wger.coach.programs.base import (
     DaySpec,
     ExerciseSpec,
+    GoalSpec,
     MealSpec,
     MeasurementSpec,
     NutritionSpec,
@@ -216,11 +217,14 @@ PROGRAM = ProgramSpec(
         ],
     ),
     measurements=[
-        MeasurementSpec(name='Waist', unit='in'),
-        MeasurementSpec(name='Chest', unit='in'),
-        MeasurementSpec(name='Shoulders', unit='in'),
-        MeasurementSpec(name='Arms', unit='in'),
-        MeasurementSpec(name='Thighs', unit='in'),
         MeasurementSpec(name='Steps', unit='', metric_type='steps'),
     ],
+    goal=GoalSpec(
+        target_weight_lb=165,
+        rate_min_per_week_lb=1.0,
+        rate_max_per_week_lb=1.5,
+        protein=165,
+        steps=10000,
+        focus=['upper_chest', 'lats', 'side_delts', 'abs'],
+    ),
 )

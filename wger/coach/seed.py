@@ -34,6 +34,11 @@ from django.db import transaction
 from django.utils import timezone
 
 # wger
+from wger.coach.body import (
+    body_categories,
+    vtaper_category,
+)
+from wger.coach.models import CoachGoal
 from wger.coach.programs.base import ProgramSpec
 from wger.exercises.models import Exercise
 from wger.manager.consts import (
@@ -72,6 +77,7 @@ class SeedResult:
     plan: NutritionPlan
     categories: list[Category] = field(default_factory=list)
     body_weight: Measurement | None = None
+    goal: CoachGoal | None = None
 
 
 def seed_program(
@@ -125,6 +131,8 @@ def seed_program(
         )
         if current_weight is not None:
             result.body_weight = _log_body_weight(user, current_weight, weight_unit)
+        if program.goal is not None:
+            result.goal = _create_or_update_goal(user, program, start, current_weight, weight_unit)
 
     return result
 
@@ -230,7 +238,8 @@ def _create_or_update_nutrition_plan(
 
 
 def _create_measurement_categories(user: User, program: ProgramSpec) -> list[Category]:
-    categories = []
+    body = body_categories(user)
+    categories = [*body.values(), vtaper_category(user, body)]
     for spec in program.measurements:
         if spec.metric_type == MetricType.CUSTOM:
             category, _ = Category.objects.get_or_create(
@@ -257,3 +266,37 @@ def _log_body_weight(user: User, value: Decimal, unit: str) -> Measurement:
         value=value,
         extra_data={'unit': unit},
     )
+
+
+LB_PER_KG = Decimal('2.20462')
+
+
+def _create_or_update_goal(
+    user: User,
+    program: ProgramSpec,
+    start: datetime.date,
+    current_weight: Decimal | None,
+    weight_unit: str,
+) -> CoachGoal:
+    spec = program.goal
+
+    def in_unit(lb: float) -> Decimal:
+        value = Decimal(str(lb))
+        return value if weight_unit == 'lb' else round(value / LB_PER_KG, 1)
+
+    values = {
+        'weight_unit': weight_unit,
+        'start_date': start,
+        'target_weight': in_unit(spec.target_weight_lb),
+        'target_date': start + datetime.timedelta(weeks=program.weeks),
+        'rate_min_per_week': in_unit(spec.rate_min_per_week_lb),
+        'rate_max_per_week': in_unit(spec.rate_max_per_week_lb),
+        'protein_target': spec.protein,
+        'step_target': spec.steps,
+        'focus': list(spec.focus),
+    }
+    # Re-running without a current weight keeps the one given the first time
+    if current_weight is not None:
+        values['start_weight'] = current_weight
+    goal, _ = CoachGoal.objects.update_or_create(user=user, defaults=values)
+    return goal

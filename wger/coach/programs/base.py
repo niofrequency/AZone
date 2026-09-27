@@ -86,6 +86,17 @@ class MeasurementSpec:
 
 
 @dataclass(frozen=True)
+class GoalSpec:
+    target_weight_lb: float
+    rate_min_per_week_lb: float
+    rate_max_per_week_lb: float
+    protein: int
+    steps: int
+    focus: list[str] = field(default_factory=list)
+    """Keys of wger.coach.models.FocusArea"""
+
+
+@dataclass(frozen=True)
 class ProgramSpec:
     name: str
     description: str
@@ -96,3 +107,6 @@ class ProgramSpec:
     """Rest days appended after the training days before the cycle repeats"""
 
     measurements: list[MeasurementSpec] = field(default_factory=list)
+    """Extra categories. Waist, shoulders etc. are always created, see wger.coach.body"""
+
+    goal: GoalSpec | None = None
