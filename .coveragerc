@@ -1,0 +1,6 @@
+[run]
+omit =
+    */migrations/*
+    */settings/*
+parallel = true
+concurrency = multiprocessing,thread

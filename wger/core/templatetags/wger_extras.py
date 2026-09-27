@@ -1,0 +1,142 @@
+# This file is part of wger Workout Manager.
+#
+# wger Workout Manager is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# wger Workout Manager is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+
+# Standard Library
+import json
+import re
+from functools import lru_cache
+
+# Django
+from django import template
+from django.contrib.staticfiles.storage import staticfiles_storage
+from django.utils.safestring import mark_safe
+from django.utils.translation import gettext_lazy as _
+
+# wger
+from wger.core.tests.base_testcase import get_reverse
+from wger.utils.language import get_language_data
+
+
+register = template.Library()
+
+
+@register.inclusion_tag('tags/language_select.html', takes_context=True)
+def language_select(context, language):
+    """
+    Renders a link to change the current language.
+    """
+
+    return get_language_data(language)
+
+
+@register.filter
+def get_item(dictionary, key):
+    """
+    Allows to access a specific key in a dictionary in a template
+    """
+    return dictionary.get(key)
+
+
+@register.filter
+def minus(a, b):
+    """
+    Simple function that subtracts two values in a template
+    """
+    return a - b
+
+
+@register.filter
+def is_positive(a):
+    """
+    Simple function that checks whether one value is bigger than the other
+    """
+    return a > 0
+
+
+@register.simple_tag
+def fa_class(class_name='', icon_type='fas', fixed_width=True):
+    """
+    Helper function to help add font awesome classes to elements
+
+    :param class_name: the CSS class name, without the "fa-" prefix
+    :param fixed_width: toggle for fixed icon width
+    :param icon_type; icon type (
+    :return: the complete CSS classes
+    """
+    css = ''
+    if not class_name:
+        return css
+
+    css += f'{icon_type} fa-{class_name}'
+
+    if fixed_width:
+        css += ' fa-fw'
+    return mark_safe(css)
+
+
+@register.inclusion_tag('tags/modal_link.html')
+def modal_link(url: str, text: str, css_class='btn btn-success btn-sm'):
+    return {'url': get_reverse(url), 'text': text, 'css_class': css_class}
+
+
+@register.simple_tag
+def trans_weight_unit(unit, user=None):
+    """
+    Returns the correct (translated) weight unit
+
+    :param unit: the weight unit. The only allowed value is 'kg'
+    :param user: the user object, needed to access the profile. If this evaluates
+                 to False, metric is used
+    :return: translated unit
+    """
+    if unit == 'kg':
+        if not user or user.userprofile.use_metric:
+            return _('kg')
+        return _('lb')
+
+
+@register.filter
+def format_username(user):
+    """
+    Formats the username according to the information available
+    """
+    if user.get_full_name():
+        return user.get_full_name()
+    elif user.email:
+        return user.email
+    else:
+        return user.username
+
+
+@lru_cache(maxsize=1)
+def _react_translation_paths_json():
+    locale_re = re.compile(r'.*/react-components/build/locales/([^/]+)/translation\.json$')
+
+    paths = {}
+    hashed_files = getattr(staticfiles_storage, 'hashed_files', None) or {}
+    for original, hashed in hashed_files.items():
+        m = locale_re.match(original)
+        if m:
+            paths[m.group(1)] = staticfiles_storage.base_url + hashed
+    return json.dumps(paths)
+
+
+@register.simple_tag
+def react_translation_paths():
+    """
+    Emit a JSON object mapping language code -> hashed URL of the React app's
+    translation file, calculated from the staticfiles manifest. Used by the
+    React app's i18next backend so it can load the translation file directly.
+    """
+    return mark_safe(_react_translation_paths_json())

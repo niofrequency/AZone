@@ -1,0 +1,647 @@
+# This file is part of wger Workout Manager.
+#
+# wger Workout Manager is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# wger Workout Manager is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with Workout Manager.  If not, see <http://www.gnu.org/licenses/>.
+
+# Standard Library
+import datetime
+
+# Django
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.utils import timezone
+
+# Third Party
+from rest_framework import serializers
+
+# wger
+from wger.core.models import UserProfile
+from wger.manager.api.consts import BASE_CONFIG_FIELDS
+from wger.manager.api.fields import DecimalOrIntegerField
+from wger.manager.api.validators import validate_requirements
+from wger.manager.models import (
+    Day,
+    MaxRepetitionsConfig,
+    MaxRestConfig,
+    MaxRiRConfig,
+    MaxSetsConfig,
+    MaxWeightConfig,
+    RepetitionsConfig,
+    RestConfig,
+    RiRConfig,
+    Routine,
+    SetsConfig,
+    Slot,
+    SlotEntry,
+    WeightConfig,
+    WorkoutLog,
+    WorkoutSession,
+)
+
+
+class RoutineSerializer(serializers.ModelSerializer):
+    """
+    Routine serializer
+    """
+
+    class Meta:
+        model = Routine
+        fields = (
+            'id',
+            'name',
+            'description',
+            'created',
+            'start',
+            'end',
+            'fit_in_week',
+            'is_template',
+            'is_public',
+        )
+
+    def validate(self, data):
+        start = data.get('start') or getattr(self.instance, 'start', None)
+        end = data.get('end') or getattr(self.instance, 'end', None)
+        if start and end:
+            if start > end:
+                raise serializers.ValidationError(
+                    {'end': 'The end date cannot be before the start date.'}
+                )
+
+            if (end - start).days > Routine.MAX_DURATION_DAYS:
+                raise serializers.ValidationError(
+                    {'end': f'A routine cannot span more than {Routine.MAX_DURATION_DAYS} days.'}
+                )
+        return data
+
+
+class DaySerializer(serializers.ModelSerializer):
+    """
+    Day serializer
+    """
+
+    class Meta:
+        model = Day
+        fields = (
+            'id',
+            'routine',
+            'order',
+            'name',
+            'description',
+            'is_rest',
+            'need_logs_to_advance',
+            'type',
+            'config',
+        )
+
+
+class BaseConfigSerializer(serializers.ModelSerializer):
+    """
+    Base Config serializer
+    """
+
+    requirements = serializers.JSONField(
+        validators=[validate_requirements],
+        allow_null=True,
+        required=False,
+    )
+
+
+class WeightConfigSerializer(BaseConfigSerializer):
+    """
+    Weight Config serializer
+    """
+
+    class Meta:
+        model = WeightConfig
+        fields = BASE_CONFIG_FIELDS
+
+
+class MaxWeightConfigSerializer(BaseConfigSerializer):
+    """
+    Max Weight Config serializer
+    """
+
+    class Meta:
+        model = MaxWeightConfig
+        fields = BASE_CONFIG_FIELDS
+
+
+class RepetitionsConfigSerializer(BaseConfigSerializer):
+    """
+    Repetition Config serializer
+    """
+
+    class Meta:
+        model = RepetitionsConfig
+        fields = BASE_CONFIG_FIELDS
+
+
+class MaxRepetitionsConfigSerializer(BaseConfigSerializer):
+    """
+    Max Repetition Config serializer
+    """
+
+    class Meta:
+        model = MaxRepetitionsConfig
+        fields = BASE_CONFIG_FIELDS
+
+
+class SetNrConfigSerializer(BaseConfigSerializer):
+    """
+    Set Nr config serializer
+    """
+
+    class Meta:
+        model = SetsConfig
+        fields = BASE_CONFIG_FIELDS
+
+
+class MaxSetNrConfigSerializer(BaseConfigSerializer):
+    """
+    Max Set Nr config serializer
+    """
+
+    class Meta:
+        model = MaxSetsConfig
+        fields = BASE_CONFIG_FIELDS
+
+
+class RiRConfigSerializer(BaseConfigSerializer):
+    """
+    RiR Config serializer
+    """
+
+    class Meta:
+        model = RiRConfig
+        fields = BASE_CONFIG_FIELDS
+
+
+class MaxRiRConfigSerializer(BaseConfigSerializer):
+    """
+    RiR Config serializer
+    """
+
+    class Meta:
+        model = MaxRiRConfig
+        fields = BASE_CONFIG_FIELDS
+
+
+class RestConfigSerializer(BaseConfigSerializer):
+    """
+    Rest Config serializer
+    """
+
+    class Meta:
+        model = RestConfig
+        fields = BASE_CONFIG_FIELDS
+
+
+class MaxRestConfigSerializer(BaseConfigSerializer):
+    """
+    Rest Config serializer
+    """
+
+    class Meta:
+        model = MaxRestConfig
+        fields = BASE_CONFIG_FIELDS
+
+
+class SlotEntryStructureSerializer(serializers.ModelSerializer):
+    """
+    Slot entry
+    """
+
+    weight_configs = WeightConfigSerializer(source='weightconfig_set', many=True)
+    max_weight_configs = WeightConfigSerializer(source='maxweightconfig_set', many=True)
+    repetitions_configs = RepetitionsConfigSerializer(source='repetitionsconfig_set', many=True)
+    max_repetitions_configs = RepetitionsConfigSerializer(
+        source='maxrepetitionsconfig_set', many=True
+    )
+    set_nr_configs = SetNrConfigSerializer(source='setsconfig_set', many=True)
+    max_set_nr_configs = MaxSetNrConfigSerializer(source='maxsetsconfig_set', many=True)
+    rir_configs = RiRConfigSerializer(source='rirconfig_set', many=True)
+    max_rir_configs = MaxRiRConfigSerializer(source='maxrirconfig_set', many=True)
+    rest_configs = RestConfigSerializer(source='restconfig_set', many=True)
+    max_rest_configs = RestConfigSerializer(source='maxrestconfig_set', many=True)
+
+    class Meta:
+        model = SlotEntry
+        fields = (
+            'id',
+            'slot',
+            'exercise',
+            'order',
+            'comment',
+            'type',
+            'class_name',
+            'config',
+            'repetition_unit',
+            'repetition_rounding',
+            'repetitions_configs',
+            'max_repetitions_configs',
+            'weight_unit',
+            'weight_rounding',
+            'weight_configs',
+            'max_weight_configs',
+            'set_nr_configs',
+            'max_set_nr_configs',
+            'rir_configs',
+            'max_rir_configs',
+            'rest_configs',
+            'max_rest_configs',
+        )
+
+
+class SlotStructureSerializer(serializers.ModelSerializer):
+    """
+    Slot
+    """
+
+    entries = SlotEntryStructureSerializer(many=True)
+
+    class Meta:
+        model = Slot
+        fields = (
+            'id',
+            'day',
+            'order',
+            'comment',
+            'entries',
+            'config',
+        )
+
+
+class SlotSerializer(serializers.ModelSerializer):
+    """
+    Slot
+    """
+
+    class Meta:
+        model = Slot
+        fields = (
+            'id',
+            'day',
+            'order',
+            'comment',
+            'config',
+        )
+
+
+class DayStructureSerializer(serializers.ModelSerializer):
+    """
+    Day serializer
+    """
+
+    slots = SlotStructureSerializer(many=True)
+
+    class Meta:
+        model = Day
+        fields = (
+            'id',
+            'routine',
+            'order',
+            'name',
+            'description',
+            'is_rest',
+            'need_logs_to_advance',
+            'type',
+            'config',
+            'slots',
+        )
+
+
+class RoutineStructureSerializer(serializers.ModelSerializer):
+    """
+    Routine structure serializer
+    """
+
+    days = DayStructureSerializer(many=True)
+
+    class Meta:
+        model = Routine
+        fields = (
+            'id',
+            'name',
+            'description',
+            'created',
+            'start',
+            'end',
+            'fit_in_week',
+            'days',
+        )
+
+
+class SlotEntrySerializer(serializers.ModelSerializer):
+    """
+    Slot entry serializer
+    """
+
+    class Meta:
+        model = SlotEntry
+        fields = (
+            'id',
+            'slot',
+            'exercise',
+            'type',
+            'repetition_unit',
+            'repetition_rounding',
+            'weight_unit',
+            'weight_rounding',
+            'order',
+            'comment',
+            'config',
+        )
+
+
+class SetConfigDataSerializer(serializers.Serializer):
+    """
+    SetConfigData serializer
+    """
+
+    slot_entry_id = serializers.IntegerField()
+    exercise = serializers.IntegerField()
+    sets = serializers.IntegerField()
+    # Everything below is null wherever the slot entry has no config for it
+    max_sets = serializers.IntegerField(allow_null=True)
+    weight = DecimalOrIntegerField(max_digits=6, decimal_places=2, allow_null=True)
+    max_weight = DecimalOrIntegerField(max_digits=6, decimal_places=2, allow_null=True)
+    weight_unit = serializers.IntegerField(allow_null=True)
+    weight_rounding = serializers.DecimalField(max_digits=4, decimal_places=2, allow_null=True)
+    repetitions = DecimalOrIntegerField(max_digits=6, decimal_places=2, allow_null=True)
+    max_repetitions = DecimalOrIntegerField(max_digits=6, decimal_places=2, allow_null=True)
+    repetitions_unit = serializers.IntegerField(allow_null=True)
+    repetitions_rounding = serializers.DecimalField(max_digits=4, decimal_places=2, allow_null=True)
+    rir = DecimalOrIntegerField(max_digits=2, decimal_places=1, allow_null=True)
+    max_rir = DecimalOrIntegerField(max_digits=2, decimal_places=1, allow_null=True)
+    # max_digits=3 (not 2 like rir): RPE = 10 - RiR, so a RiR of 0 yields RPE 10,
+    # which needs three digits to serialize.
+    rpe = DecimalOrIntegerField(max_digits=3, decimal_places=1, allow_null=True)
+    rest = DecimalOrIntegerField(max_digits=6, decimal_places=2, allow_null=True)
+    max_rest = DecimalOrIntegerField(max_digits=6, decimal_places=2, allow_null=True)
+    type = serializers.CharField()
+    text_repr = serializers.CharField()
+    comment = serializers.CharField()
+
+
+class SlotDataSerializer(serializers.Serializer):
+    """
+    Slot Data serializer
+    """
+
+    comment = serializers.CharField()
+    is_superset = serializers.BooleanField()
+    exercises = serializers.ListSerializer(child=serializers.IntegerField())
+    sets = SetConfigDataSerializer(many=True)
+
+
+class WorkoutDayDataDisplayModeSerializer(serializers.Serializer):
+    """
+    WorkoutDayData serializer - display mode
+    """
+
+    iteration = serializers.IntegerField()
+    date = serializers.DateField()
+    # Both null on the placeholder entries a fit_in_week routine pads the rest
+    # of the week with: there is no day, and labels are per-date and sparse.
+    label = serializers.CharField(allow_null=True)
+    day = DaySerializer(allow_null=True)
+    slots = SlotDataSerializer(many=True, source='slots_display_mode')
+
+
+class WorkoutDayDataGymModeSerializer(serializers.Serializer):
+    """
+    WorkoutDayData serializer - gym mode
+    """
+
+    iteration = serializers.IntegerField()
+    date = serializers.DateField()
+    # See the display-mode serializer above: both are null on padding entries.
+    label = serializers.CharField(allow_null=True)
+    day = DaySerializer(allow_null=True)
+    slots = SlotDataSerializer(many=True, source='slots_gym_mode')
+
+
+class WorkoutSessionSerializer(serializers.ModelSerializer):
+    """
+    Workout session serializer
+    """
+
+    # Write-only compatibility with the pre-2.7 API, remove in 2.8. The app
+    # queues its offline writes with the column names it had at the time, so
+    # uploads written before the update still arrive in the old shape.
+    LEGACY_FIELDS = ('date', 'time_start', 'time_end')
+
+    class Meta:
+        model = WorkoutSession
+        fields = (
+            'id',
+            'routine',
+            'day',
+            'notes',
+            'impression',
+            'datetime_start',
+            'datetime_end',
+        )
+
+    def validate(self, attrs):
+        """
+        Run the model validation on the interval the request would end up with
+
+        Sessions stored before the limit was introduced, or before it was lowered,
+        stay editable as long as the request leaves their times alone.
+        """
+        start = attrs.get('datetime_start')
+        end = attrs.get('datetime_end') if 'datetime_end' in attrs else None
+        if self.instance:
+            start = start or self.instance.datetime_start
+            if 'datetime_end' not in attrs:
+                end = self.instance.datetime_end
+            if (start, end) == (self.instance.datetime_start, self.instance.datetime_end):
+                return attrs
+        else:
+            start = start or timezone.now()
+
+        try:
+            WorkoutSession(datetime_start=start, datetime_end=end).clean()
+        except DjangoValidationError as e:
+            raise serializers.ValidationError({'datetime_end': e.messages})
+
+        return attrs
+
+    def to_internal_value(self, data):
+        return super().to_internal_value(self._translate_legacy_input(data))
+
+    def _translate_legacy_input(self, data):
+        """
+        Compose datetime_start/datetime_end out of the deprecated triple
+
+        Only components the request did not send are taken from the instance, so
+        a PATCH that just sets time_end keeps the day and start time it had. Values
+        sent in the new format always win. The wall times resolve in the owner's
+        zone: a queued 07:00 is the user's 07:00, whatever zone the request
+        happens to run in.
+        """
+        if not any(key in data for key in self.LEGACY_FIELDS):
+            return data
+
+        tz = self._owner_zone()
+        data = data.copy()
+        date = self._legacy_value('date', data, serializers.DateField)
+        time_start = self._legacy_value('time_start', data, serializers.TimeField)
+        time_end = self._legacy_value('time_end', data, serializers.TimeField)
+
+        local_start = (
+            timezone.localtime(self.instance.datetime_start, tz)
+            if self.instance and self.instance.datetime_start
+            else None
+        )
+        if date is None:
+            date = local_start.date() if local_start else timezone.localdate(timezone=tz)
+        if 'time_start' not in data:
+            time_start = local_start.time() if local_start else datetime.time()
+        if 'time_end' not in data and self.instance and self.instance.datetime_end:
+            time_end = timezone.localtime(self.instance.datetime_end, tz).time()
+
+        if 'datetime_start' not in data:
+            data['datetime_start'] = timezone.make_aware(
+                datetime.datetime.combine(date, time_start or datetime.time()), tz
+            )
+        if 'datetime_end' not in data:
+            end = None
+            if time_end:
+                end = timezone.make_aware(datetime.datetime.combine(date, time_end), tz)
+                if time_start and time_end < time_start:
+                    end += datetime.timedelta(days=1)
+            data['datetime_end'] = end
+
+        return data
+
+    def _owner_zone(self):
+        """The owner's timezone, falling back to the active one when unknown"""
+        if self.instance:
+            return self.instance.user.userprofile.zone_info
+        user_id = self.context.get('user_id')
+        if user_id is None:
+            request = self.context.get('request')
+            if request is not None and request.user.is_authenticated:
+                user_id = request.user.pk
+        if user_id is None:
+            return timezone.get_current_timezone()
+        return UserProfile.objects.get(user_id=user_id).zone_info
+
+    @staticmethod
+    def _legacy_value(key, data, field_class):
+        """Parse one deprecated value, reporting errors under its own key"""
+
+        if data.get(key) in (None, ''):
+            return None
+
+        try:
+            return field_class().to_internal_value(data[key])
+        except serializers.ValidationError as e:
+            raise serializers.ValidationError({key: e.detail})
+
+
+class OwnerScopedSessionField(serializers.PrimaryKeyRelatedField):
+    """
+    A writeable session FK that only resolves UUIDs of sessions owned by the
+    current user.
+
+    If neither the request or an explicit context is available (e.g. a serializer
+    instantiated for read-only display without a user context), the queryset
+    becomes empty so that no FK can be set; reads continue to work because
+    ``PrimaryKeyRelatedField`` only consults the queryset on write.
+    """
+
+    def get_queryset(self):
+        user_id = self.context.get('user_id')
+        if user_id is None:
+            request = self.context.get('request')
+            user = getattr(request, 'user', None) if request else None
+            if user is not None and user.is_authenticated:
+                user_id = user.pk
+        if user_id is None:
+            return WorkoutSession.objects.none()
+        return WorkoutSession.objects.filter(user_id=user_id)
+
+
+class WorkoutLogSerializer(serializers.ModelSerializer):
+    """
+    Workout log serializer
+    """
+
+    session = OwnerScopedSessionField(required=False, allow_null=True)
+
+    class Meta:
+        model = WorkoutLog
+        fields = (
+            'id',
+            'date',
+            'session',
+            'routine',
+            'iteration',
+            'slot_entry',
+            'next_log',
+            'exercise',
+            'repetitions_unit',
+            'repetitions',
+            'repetitions_target',
+            'weight_unit',
+            'weight',
+            'weight_target',
+            'rir',
+            'rir_target',
+            'rest',
+            'rest_target',
+        )
+
+
+class LogDisplaySerializer(serializers.Serializer):
+    """
+    Log Display Data serializer
+    """
+
+    session = WorkoutSessionSerializer()
+    logs = WorkoutLogSerializer(many=True)
+
+
+class LogDataSerializer(serializers.Serializer):
+    """
+    Log Stats Data serializer
+    """
+
+    exercises = serializers.DictField()
+    muscle = serializers.DictField()
+    upper_body = serializers.DecimalField(max_digits=10, decimal_places=2)
+    lower_body = serializers.DecimalField(max_digits=10, decimal_places=2)
+    total = serializers.DecimalField(max_digits=10, decimal_places=2)
+
+
+class GroupedLogDataSerializer(serializers.Serializer):
+    """
+    Log Stats Data serializer
+    """
+
+    iteration = serializers.DictField(child=LogDataSerializer())
+    weekly = serializers.DictField(child=LogDataSerializer())
+    daily = serializers.DictField(child=LogDataSerializer())
+    mesocycle = LogDataSerializer()
+
+
+class LogStatsDataSerializer(serializers.Serializer):
+    """
+    Log Stats Data serializer
+    """
+
+    intensity = GroupedLogDataSerializer()
+    sets = GroupedLogDataSerializer()
+    volume = GroupedLogDataSerializer()

@@ -1,0 +1,364 @@
+# -*- coding: utf-8 -*-
+
+# This file is part of wger Workout Manager.
+#
+# wger Workout Manager is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# wger Workout Manager is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+
+# Standard Library
+from collections import defaultdict
+from datetime import date
+
+# Django
+from django import forms
+from django.conf import settings
+from django.contrib.auth.forms import PasswordResetForm
+from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
+from django.forms import (
+    CharField,
+    EmailField,
+    Form,
+    PasswordInput,
+)
+from django.utils.text import format_lazy
+from django.utils.translation import (
+    gettext as _,
+    gettext_lazy,
+)
+
+# Third Party
+from allauth.account.forms import (
+    LoginForm as AllauthLoginForm,
+    SignupForm as AllauthSignupForm,
+)
+from allauth.account.utils import filter_users_by_email
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import (
+    ButtonHolder,
+    Column,
+    Fieldset,
+    Layout,
+    Row,
+    Submit,
+)
+from django_recaptcha.fields import ReCaptchaField
+from django_recaptcha.widgets import ReCaptchaV3
+
+# wger
+from wger.core.models import UserProfile
+from wger.core.models.profile import available_timezone_names
+
+
+class PasswordInputWithToggle(PasswordInput):
+    """
+    Custom PasswordInput widget with eye icon toggle functionality
+    """
+
+    template_name = 'forms/password_with_toggle.html'
+
+    def __init__(self, attrs=None, render_value=False):
+        default_attrs = {'class': 'form-control'}
+        if attrs:
+            default_attrs.update(attrs)
+        super().__init__(default_attrs, render_value)
+
+
+class WgerLoginForm(AllauthLoginForm):
+    """allauth's login form with wger's password-visibility toggle widget."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['login'].widget.attrs['class'] = 'form-control'
+        self.fields['password'].widget = PasswordInputWithToggle(
+            attrs={'autocomplete': 'current-password'}
+        )
+
+
+class WgerSignupForm(AllauthSignupForm):
+    """
+    allauth's signup form with wger's password-toggle widgets and an optional
+    reCAPTCHA field (shown when WGER_SETTINGS['USE_RECAPTCHA'] is set).
+
+    The crispy helper uses ``form_tag = False`` because both consumers — the
+    dedicated signup page and the landing page — provide their own ``<form>``.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        for name in ('password1', 'password2'):
+            if name in self.fields:
+                self.fields[name].widget = PasswordInputWithToggle()
+
+        layout_fields = [
+            'username',
+            'email',
+            Row(
+                Column('password1', css_class='col-md-6 col-12'),
+                Column('password2', css_class='col-md-6 col-12'),
+                css_class='form-row',
+            ),
+        ]
+        if settings.WGER_SETTINGS['USE_RECAPTCHA']:
+            self.fields['captcha'] = ReCaptchaField(
+                widget=ReCaptchaV3(action='register'),
+                label='reCaptcha',
+                help_text=gettext_lazy('The form is secured with reCAPTCHA'),
+            )
+            layout_fields.append('captcha')
+
+        self.helper = FormHelper()
+        self.helper.form_tag = False
+        self.helper.form_class = 'wger-form'
+        self.helper.layout = Layout(
+            *layout_fields,
+            # The submit button must not be named "submit": a form control named
+            # "submit" shadows the native HTMLFormElement.submit() method, which
+            # the django-recaptcha v3 widget calls to submit the form after the
+            # token is set
+            ButtonHolder(Submit('submitBtn', _('Register'), css_class='btn-success btn-block')),
+        )
+
+
+def timezone_choices():
+    """
+    The IANA zones as grouped dropdown choices, e.g. ('Europe/Berlin', 'Berlin')
+
+    Skips the bare abbreviations and the Etc/ area (whose numeric offsets are
+    inverted). The validator on the model accepts every IANA name, so this only
+    limits what the dropdown offers, not what the API stores.
+    """
+    groups = defaultdict(list)
+    for name in sorted(available_timezone_names()):
+        if '/' not in name or name.startswith('Etc/'):
+            continue
+        region, _, city = name.partition('/')
+        groups[region].append((name, city.replace('_', ' ')))
+
+    return [('', gettext_lazy('Not set')), ('UTC', 'UTC')] + sorted(groups.items())
+
+
+class UserPreferencesForm(forms.ModelForm):
+    first_name = forms.CharField(label=gettext_lazy('First name'), required=False)
+    last_name = forms.CharField(label=gettext_lazy('Last name'), required=False)
+    birthdate = forms.DateField(
+        label=gettext_lazy('Date of Birth'),
+        required=False,
+        widget=forms.DateInput(
+            format='%Y-%m-%d',
+            attrs={
+                'type': 'date',
+                'max': str(date(date.today().year - 10, 1, 1)),
+                'min': str(date(date.today().year - 100, 1, 1)),
+            },
+        ),
+    )
+
+    time_zone = forms.ChoiceField(
+        label=gettext_lazy('Timezone'),
+        required=False,
+        choices=timezone_choices,
+        help_text=gettext_lazy(
+            'Used to decide which day a workout counts for. '
+            'The mobile app reports it automatically.'
+        ),
+    )
+
+    class Meta:
+        model = UserProfile
+        fields = (
+            'notification_language',
+            'weight_unit',
+            'birthdate',
+            'height',
+            'time_zone',
+        )
+
+    def __init__(self, *args, **kwargs):
+        super(UserPreferencesForm, self).__init__(*args, **kwargs)
+
+        # A zone set through the API can lie outside the dropdown (e.g.
+        # Etc/GMT+5). Without its option the browser submits the empty choice
+        # and the next save of the form silently clears the field.
+        tz_field = self.fields['time_zone']
+        current = self.instance.time_zone
+        if current and not tz_field.valid_value(current):
+            tz_field.choices = [*tz_field.choices, (current, current)]
+
+        hattrs = self.fields['height'].widget.attrs
+        hattrs.setdefault('type', 'number')
+        hattrs.setdefault('step', '1')
+        hattrs['min'] = '0'
+
+        self.helper = FormHelper()
+        self.helper.form_class = 'wger-form'
+        # Disable browser-side HTML5 validation so invalid emails and empty
+        # required fields submit through to Django, which surfaces a proper
+        # error message inline instead of the browser's own popover.
+        self.helper.attrs = {'novalidate': True}
+        self.helper.layout = Layout(
+            Fieldset(
+                _('Personal data'),
+                Row(
+                    Column('first_name', css_class='col-6'),
+                    Column('last_name', css_class='col-6'),
+                    css_class='form-row',
+                ),
+                'birthdate',
+                'height',
+            ),
+            Fieldset(
+                _('Other settings'),
+                'notification_language',
+                'weight_unit',
+                'time_zone',
+            ),
+            ButtonHolder(Submit('submit', _('Save'), css_class='btn-success btn-block')),
+        )
+
+    def save(self, commit=True):
+        """Also persist the first/last name onto the related User."""
+        profile = super().save(commit=commit)
+        if commit:
+            self.user.first_name = self.cleaned_data['first_name']
+            self.user.last_name = self.cleaned_data['last_name']
+            self.user.save(update_fields=['first_name', 'last_name'])
+        return profile
+
+
+class UserEmailForm(forms.ModelForm):
+    email = EmailField(
+        label=gettext_lazy('Email'),
+        help_text=gettext_lazy('Used for password resets and, optionally, email reminders.'),
+        required=False,
+    )
+
+    class Meta:
+        model = User
+        fields = ('email',)
+
+    def clean_email(self):
+        """
+        E-mail must be unique system-wide.
+
+        Uniqueness is checked case-insensitively across both ``User.email``
+        and allauth's ``EmailAddress`` table (which also tracks secondary,
+        unverified addresses)
+        """
+
+        email = self.cleaned_data['email']
+        if not email:
+            return email
+
+        own_pk = self.instance.pk if self.instance and self.instance.pk else None
+        if any(u.pk != own_pk for u in filter_users_by_email(email)):
+            raise ValidationError(_('This e-mail address is already in use.'))
+        return email
+
+
+class UserPersonalInformationForm(UserEmailForm):
+    first_name = forms.CharField(label=_('First name'), required=False)
+    last_name = forms.CharField(label=_('Last name'), required=False)
+
+    class Meta:
+        model = User
+        fields = ('first_name', 'last_name', 'email')
+
+
+class PasswordConfirmationForm(Form):
+    """
+    A simple password confirmation form.
+
+    This can be used to make sure the user really wants to perform a dangerous
+    action. The form must be initialised with a user object.
+    """
+
+    password = CharField(
+        label=gettext_lazy('Password'),
+        widget=PasswordInputWithToggle,
+        help_text=gettext_lazy('Please enter your current password.'),
+    )
+
+    def __init__(self, user, data=None):
+        self.user = user
+        super().__init__(data=data)
+        self.helper = FormHelper()
+        self.helper.layout = Layout(
+            'password',
+            ButtonHolder(Submit('submit', _('Delete'), css_class='btn-danger btn-block')),
+        )
+
+    def clean_password(self):
+        """
+        Check that the password supplied matches the one for the user
+        """
+        password = self.cleaned_data.get('password', None)
+        if not self.user.check_password(password):
+            raise ValidationError(_('Invalid password'))
+        return password
+
+
+class UsernameConfirmationForm(Form):
+    """
+    A username confirmation form.
+
+    Same purpose as PasswordConfirmationForm, but for accounts without a usable
+    password (e.g. social logins, which have no password to check): the user
+    confirms by typing the exact username of the account being acted on.
+    """
+
+    username = CharField(label=gettext_lazy('Confirm'))
+
+    def __init__(self, user, confirm_username=None, data=None):
+        self.user = user
+        self.confirm_username = confirm_username or user.username
+        super().__init__(data=data)
+        self.fields['username'].help_text = format_lazy(
+            gettext_lazy(
+                'Your account has no password. Type the username "{username}" to confirm.'
+            ),
+            username=self.confirm_username,
+        )
+        self.helper = FormHelper()
+        self.helper.layout = Layout(
+            'username',
+            ButtonHolder(Submit('submit', _('Delete'), css_class='btn-danger btn-block')),
+        )
+
+    def clean_username(self):
+        """
+        Check that the typed username matches the account being acted on
+        """
+        username = self.cleaned_data.get('username', None)
+        if username != self.confirm_username:
+            raise ValidationError(_('The entered username does not match'))
+        return username
+
+
+class PasswordResetFormCaptcha(PasswordResetForm):
+    captcha = ReCaptchaField(
+        widget=ReCaptchaV3(action='password_reset'),
+        label='reCaptcha',
+        help_text=gettext_lazy('The form is secured with reCAPTCHA'),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.helper = FormHelper()
+        self.helper.form_class = 'wger-form'
+        self.helper.layout = Layout(
+            'email',
+            'captcha',
+            ButtonHolder(Submit('submitBtn', _('Submit'), css_class='btn-success btn-block')),
+        )

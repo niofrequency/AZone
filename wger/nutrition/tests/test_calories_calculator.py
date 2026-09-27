@@ -1,0 +1,141 @@
+# This file is part of wger Workout Manager.
+#
+# wger Workout Manager is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# wger Workout Manager is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+
+# Standard Library
+import decimal
+import json
+
+# Django
+from django.contrib.auth.models import User
+from django.urls import reverse
+from django.utils import timezone
+
+# wger
+from wger.core.tests.base_testcase import WgerTestCase
+from wger.measurements.models import Measurement
+from wger.nutrition.forms import BmrForm
+from wger.utils.constants import TWOPLACES
+
+
+class CaloriesCalculatorTestCase(WgerTestCase):
+    """
+    Tests the calories calculator methods and views
+    """
+
+    def test_page(self):
+        """
+        Access the page
+        """
+
+        response = self.client.get(reverse('nutrition:calories:view'))
+        self.assertEqual(response.status_code, 302)
+
+        self.user_login('test')
+        response = self.client.get(reverse('nutrition:calories:view'))
+        self.assertEqual(response.status_code, 200)
+
+    def test_calculator(self):
+        """
+        Tests the calculator itself
+        """
+
+        self.user_login('test')
+        response = self.client.post(
+            reverse('nutrition:calories:activities'),
+            {
+                'sleep_hours': 7,
+                'work_hours': 8,
+                'work_intensity': 1,
+                'sport_hours': 6,
+                'sport_intensity': 3,
+                'freetime_hours': 8,
+                'freetime_intensity': 1,
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        result = json.loads(response.content.decode('utf8'))
+        self.assertEqual(
+            decimal.Decimal(result['factor']), decimal.Decimal(1.57).quantize(TWOPLACES)
+        )
+        self.assertEqual(decimal.Decimal(result['activities']), decimal.Decimal(2920))
+
+    def test_bmr(self):
+        """
+        Tests the BMR view
+        """
+
+        self.user_login('test')
+        response = self.client.post(
+            reverse('nutrition:calories:bmr'), {'age': 30, 'height': 180, 'gender': 1, 'weight': 80}
+        )
+        self.assertEqual(response.status_code, 200)
+        result = json.loads(response.content.decode('utf8'))
+        self.assertEqual(result, {'bmr': '1780'})
+
+    def test_bmr_requires_height(self):
+        """The BMR form requires a height, even though it is optional on the profile."""
+        form = BmrForm(data={'age': 30, 'gender': 1, 'weight': 80})
+        self.assertFalse(form.is_valid())
+        self.assertIn('height', form.errors)
+
+    def test_bmr_refuses_an_implausible_weight(self):
+        """The weight is written back as a measurement, so it is bounded like one."""
+        for weight in (0, 10, 400):
+            form = BmrForm(data={'age': 30, 'height': 180, 'gender': 1, 'weight': weight})
+            self.assertFalse(form.is_valid())
+            self.assertIn('weight', form.errors)
+
+    def test_bmr_writes_no_entry_for_a_prefilled_zero(self):
+        """
+        The form is prefilled with the profile weight, which is 0 without any
+        entry; submitting that unchanged used to store it
+        """
+        self.user_login('test')
+        user = User.objects.get(username=self.current_user)
+        Measurement.body_weight_for(user).delete()
+
+        response = self.client.post(
+            reverse('nutrition:calories:bmr'), {'age': 30, 'height': 180, 'gender': 1, 'weight': 0}
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Measurement.body_weight_for(user).exists())
+
+    def test_automatic_weight_entry_bmr(self):
+        """
+        Tests that weight entries are automatically created or updated
+        """
+
+        self.user_login('test')
+        user = User.objects.get(username=self.current_user)
+
+        # A new weight entry is always created
+        entry1 = Measurement.body_weight_for(user).latest('date')
+        response = self.client.post(
+            reverse('nutrition:calories:bmr'), {'age': 30, 'height': 180, 'gender': 1, 'weight': 80}
+        )
+        self.assertEqual(response.status_code, 200)
+        entry2 = Measurement.body_weight_for(user).latest('date')
+        self.assertEqual(entry1.value, 83)
+        self.assertEqual(entry2.value, 80)
+
+        # No existing entries
+        Measurement.body_weight_for(user).delete()
+        response = self.client.post(
+            reverse('nutrition:calories:bmr'), {'age': 30, 'height': 180, 'gender': 1, 'weight': 80}
+        )
+        self.assertEqual(response.status_code, 200)
+        entry = Measurement.body_weight_for(user).latest('date')
+        self.assertEqual(entry.value, 80)
+        self.assertEqual(entry.date.date(), timezone.now().date())

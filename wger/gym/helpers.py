@@ -1,0 +1,111 @@
+# -*- coding: utf-8 -*-
+
+# This file is part of wger Workout Manager.
+#
+# wger Workout Manager is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# wger Workout Manager is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+
+# Django
+from django.utils import timezone
+
+
+def get_user_last_activity(user):
+    """
+    Find out when the user was last active. "Active" means in this context logging
+    a weight, or saving a workout session.
+
+    :param user: user object
+    :return: a date or None if nothing was found
+    """
+    # wger
+    from wger.manager.models import (
+        WorkoutLog,
+        WorkoutSession,
+    )
+
+    dates = []
+
+    # The day is derived in the member's zone, not in the one of the trainer
+    # looking at the list
+    tz = user.userprofile.zone_info
+
+    # Check workout logs. They use datetimes, the sessions and the user cache
+    # only dates
+    last_log = WorkoutLog.objects.filter(user=user).order_by('date').last()
+    if last_log:
+        dates.append(timezone.localdate(last_log.date, timezone=tz))
+
+    # Check workout sessions
+    last_session = WorkoutSession.objects.filter(user=user).order_by('datetime_start').last()
+    if last_session:
+        dates.append(timezone.localdate(last_session.datetime_start, timezone=tz))
+
+    return max(dates) if dates else None
+
+
+_CSV_FORMULA_PREFIXES = ('=', '+', '-', '@', '\t', '\r')
+
+
+def sanitize_csv_cell(value):
+    """
+    Neutralise spreadsheet formula triggers in a CSV/TSV cell.
+    """
+    s = '' if value is None else str(value)
+    if s and s[0] in _CSV_FORMULA_PREFIXES:
+        return "'" + s
+    return s
+
+
+def is_same_gym(user_a, user_b):
+    """
+    Check whether two users belong to the same gym.
+
+    Returns ``True`` only when both users are members of the same, non-null gym
+    """
+    gym_a = user_a.userprofile.gym_id
+    gym_b = user_b.userprofile.gym_id
+    return gym_a is not None and gym_a == gym_b
+
+
+def is_any_gym_admin(user):
+    """
+    Small utility that checks that the user object has any administrator
+    permissions
+    """
+    return (
+        user.has_perm('gym.manage_gym')
+        or user.has_perm('gym.manage_gyms')
+        or user.has_perm('gym.gym_trainer')
+    )
+
+
+def get_permission_list(user):
+    """
+    Calculate available user permissions
+
+    This is needed because a user shouldn't be able to create or give another
+    account with more permissions than himself.
+
+    :param user: the user creating the account
+    :return: a list of permissions
+    """
+
+    form_group_permission = ['user', 'trainer']
+
+    if user.has_perm('gym.manage_gym'):
+        form_group_permission.append('admin')
+
+    if user.has_perm('gym.manage_gyms'):
+        form_group_permission.append('admin')
+        form_group_permission.append('manager')
+
+    return form_group_permission

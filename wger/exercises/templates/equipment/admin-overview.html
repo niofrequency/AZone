@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% load i18n static wger_extras %}
+
+{% block title %}{% translate "Equipment list" %}{% endblock %}
+
+
+{% block content %}
+    <ul class="list-group">
+        {% for equipment in equipment_list %}
+            <li class="list-group-item list-group-item-action">
+                <div class="btn-group float-end">
+                    <button type="button" class="btn btn-dark dropdown-toggle btn-sm"
+                            data-bs-toggle="dropdown">
+                        <span class="{% fa_class 'cog' %}"></span>
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-right" role="menu">
+                        {% translate 'Edit' as text %}
+                        {% url 'exercise:equipment:edit' equipment.id as url %}
+                        {% modal_link url=url text=text css_class='dropdown-item' %}
+
+                        {% translate 'Delete' as text %}
+                        {% url 'exercise:equipment:delete' equipment.id as url %}
+                        {% modal_link url=url text=text css_class='dropdown-item' %}
+                    </div>
+                </div>
+                {{ equipment.name }}
+            </li>
+            {% empty %}
+            <li class="list-group-item">
+                {% translate "Nothing found" %}
+            </li>
+        {% endfor %}
+    </ul>
+{% endblock %}
+
+
+{% block options %}
+    {% if perms.exercises.add_equipment %}
+        {% translate 'Add' as text %}
+        {% modal_link url='exercise:equipment:add' text=text %}
+    {% endif %}
+{% endblock %}

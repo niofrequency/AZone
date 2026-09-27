@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% load i18n static wger_extras django_bootstrap_breadcrumbs %}
+
+{% block title %}{% translate 'Contract' %} {{ object }}{% endblock %}
+
+
+{% block breadcrumbs %}
+    {{ block.super }}
+
+    {% if perms.gym.manage_gyms %}
+        {% breadcrumb "Gyms" "gym:gym:list" %}
+    {% endif %}
+    {% breadcrumb_raw object.member.userprofile.gym "gym:gym:user-list" object.member.userprofile.gym.pk %}
+    {% breadcrumb_raw object.member|format_username "core:user:overview" object.member.pk %}
+    {% breadcrumb "Contracts" "gym:contract:list" object.member.pk %}
+    {% breadcrumb "Contract" "gym:contract:view" object.pk %}
+{% endblock %}
+
+
+{% block content %}
+<table class="table">
+    {% if object.contract_type %}
+    <tr>
+        <th style="width: 20%;">{% translate 'Contract is active' %}</th>
+        <td colspan="3">
+            {% if object.is_active %}
+                <span class="{% fa_class 'check' %}"></span>
+            {% else %}
+                <span class="{% fa_class 'times' %}"></span>
+            {% endif %}
+        </td>
+    </tr>
+    <tr>
+        <th>{% translate 'Contract type' %}</th>
+        <td colspan="3">{{ object.contract_type.name|default:'-/-' }}</td>
+    </tr>
+    {% endif %}
+
+    {% if object.options.exists %}
+    <tr>
+        <th>{% translate "Options" %}</th>
+        <td colspan="3">
+            {% for option in object.options.all %}
+            {{ option }}<br>
+            {% endfor %}
+        </td>
+    </tr>
+    {% endif %}
+    <tr>
+        <th>{% translate 'Name' %}</th>
+        <td>
+            {{ object.member.last_name }},
+            {{ object.member.first_name }}
+        </td>
+        <th>{% translate 'Username' %}</th>
+        <td>{{ object.member }}</td>
+    </tr>
+    <tr>
+        <th>{% translate 'Amount' %}</th>
+        <td>
+            {{ object.amount|default:'-/-' }}
+        </td>
+        <th>{% translate 'Payment type' %}</th>
+        <td>
+            {{ object.get_payment_display }}
+        </td>
+    </tr>
+    <tr>
+        <th>{% translate 'Start date' %}</th>
+        <td>{{ object.date_start|default:'-/-' }}</td>
+        <th>{% translate 'End date' %}</th>
+        <td>{{ object.date_end|default:'-/-' }}</td>
+    </tr>
+    <tr>
+        <th>{% translate 'Phone' %}</th>
+        <td>{{ object.phone }}</td>
+        <th>{% translate 'Email' %}</th>
+        <td>
+            {% if object.email %}
+                <a href="mailto:{{ object.email }}">{{ object.email }}</a>
+            {% else %}
+                -/-
+            {% endif %}
+        </td>
+    </tr>
+    <tr>
+        <th>{% translate 'Address' %}</th>
+        <td>
+            {{object.zip_code}} {{object.city}}<br>
+            {{object.street}}
+        </td>
+        <th>{% translate 'Profession' %}</th>
+        <td>{{ object.profession }}</td>
+    </tr>
+    <tr>
+        <th>{% translate 'Note' %}</th>
+        <td colspan="3" style="white-space: pre-line;">{{ object.note }}</td>
+    </tr>
+</table>
+{% endblock %}
+
+
+
+
+{% block options %}
+    {% translate 'Edit' as text %}
+    {% url 'gym:contract:edit' object.pk as url %}
+    {% modal_link url=url text=text %}
+{% endblock %}

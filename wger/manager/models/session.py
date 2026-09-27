@@ -1,0 +1,201 @@
+#  This file is part of wger Workout Manager <https://github.com/wger-project>.
+#  Copyright (C) 2013 - 2021 wger Team
+#
+#  wger Workout Manager is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU Affero General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  wger Workout Manager is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU Affero General Public License for more details.
+#
+#  You should have received a copy of the GNU Affero General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+# Standard Library
+import datetime
+
+# Django
+from django.conf import settings
+from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
+from django.db import models
+from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
+
+# wger
+from wger.utils.uuid import uuid7
+
+
+class WorkoutSession(models.Model):
+    """
+    Model for a workout session
+    """
+
+    IMPRESSION_BAD = '1'
+    IMPRESSION_NEUTRAL = '2'
+    IMPRESSION_GOOD = '3'
+
+    IMPRESSION = (
+        (IMPRESSION_BAD, _('Bad')),
+        (IMPRESSION_NEUTRAL, _('Neutral')),
+        (IMPRESSION_GOOD, _('Good')),
+    )
+
+    user = models.ForeignKey(
+        User,
+        verbose_name='User',
+        on_delete=models.CASCADE,
+    )
+    """
+    The user the workout session belongs to
+
+    NOTE: this field is neither marked as editable=False nor excluded from the
+    form. This is done intentionally because otherwise it's *very* difficult
+    and ugly to validate the uniqueness of unique_together fields when one
+    field is excluded from the form. This does not pose any security risk
+    because the value from the form is ignored and the request's user always
+    used.
+    """
+
+    id = models.UUIDField(
+        default=uuid7,
+        null=False,
+        primary_key=True,
+    )
+
+    routine = models.ForeignKey(
+        'Routine',
+        on_delete=models.SET_NULL,
+        related_name='sessions',
+        null=True,
+    )
+
+    day = models.ForeignKey(
+        'Day',
+        on_delete=models.SET_NULL,
+        null=True,
+    )
+    """
+    The day the session belongs to
+    """
+
+    datetime_start = models.DateTimeField(
+        verbose_name='Start date and time',
+        default=timezone.now,
+    )
+    """
+    The date and time the workout session started
+    """
+
+    datetime_end = models.DateTimeField(
+        verbose_name='End date and time',
+        blank=True,
+        null=True,
+    )
+    """
+    The date and time the workout session ended
+    """
+
+    notes = models.TextField(
+        verbose_name='Notes',
+        null=True,
+        blank=True,
+        help_text='Any notes you might want to save about this workout session.',
+    )
+    """
+    User notes about the workout
+    """
+
+    impression = models.CharField(
+        verbose_name='General impression',
+        max_length=2,
+        choices=IMPRESSION,
+        default=IMPRESSION_NEUTRAL,
+        help_text=(
+            'Your impression about this workout session. Did you exercise as well as you could?'
+        ),
+    )
+    """
+    The user's general impression of workout
+    """
+
+    def __str__(self):
+        """
+        Return a more human-readable representation
+        """
+        return f'{self.routine} - {self.local_day}'
+
+    @property
+    def local_day(self) -> datetime.date | None:
+        """
+        The calendar day this session counts for, e.g. for streaks
+
+        A session that runs over midnight counts for the day it started on, in
+        the timezone of the user it belongs to and not in the one of whoever is
+        asking. An ORM lookup such as ``datetime_start__date`` resolves in the
+        active timezone instead and is not an equivalent.
+
+        Loads the owner's profile. Anything iterating over sessions of one user
+        should fetch the zone once and use ``local_day_in`` instead.
+        """
+        return self.local_day_in(self.user.userprofile.zone_info)
+
+    def local_day_in(self, tz: datetime.tzinfo) -> datetime.date | None:
+        """
+        The calendar day this session counts for, in the given timezone
+        """
+        if not self.datetime_start:
+            return None
+
+        return timezone.localtime(self.datetime_start, timezone=tz).date()
+
+    class Meta:
+        """
+        Set other properties
+        """
+
+        ordering = [
+            'datetime_start',
+        ]
+        indexes = [models.Index(fields=['routine', 'datetime_start'])]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(datetime_end__isnull=True)
+                | models.Q(datetime_end__gte=models.F('datetime_start')),
+                name='session_end_after_start',
+            ),
+        ]
+
+    @classmethod
+    def max_duration(cls) -> datetime.timedelta:
+        """
+        How long a session may last, and how far back a log looks for an open one
+        """
+        return datetime.timedelta(hours=settings.WGER_MAX_SESSION_LENGTH_HOURS)
+
+    def clean(self):
+        """
+        Perform some additional validations
+        """
+        # Note: We do NOT force both datetime_start and datetime_end to be present.
+        # A missing datetime_end means the session is currently "open" and ongoing.
+        if not (self.datetime_start and self.datetime_end):
+            return
+
+        if self.datetime_start > self.datetime_end:
+            raise ValidationError(_('The start time cannot be after the end time.'))
+
+        if self.datetime_end - self.datetime_start > self.max_duration():
+            raise ValidationError(
+                _('A session cannot be longer than %(hours)s hours.')
+                % {'hours': settings.WGER_MAX_SESSION_LENGTH_HOURS}
+            )
+
+    def get_owner_object(self):
+        """
+        Returns the object that has owner information
+        """
+        return self

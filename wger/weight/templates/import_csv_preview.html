@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% load i18n crispy_forms_tags %}
+
+{% block title %}{% translate "Preview imported CSV entries" %}{% endblock %}
+
+
+
+{% block content %}
+<h4>{% translate "Successfully converted values" %}</h4>
+<div class="alert alert-success">{% translate "The following values could be converted." %}</div>
+<table class="table">
+<tr>
+    <th>{% translate "Date" %}</th>
+    <th>{% translate "Weight" %}</th>
+</tr>
+{% for entry in weight_list %}
+    <tr>
+        <td>{{ entry.date|date:"SHORT_DATE_FORMAT" }}</td>
+        <td>{{ entry.weight }}</td>
+    </tr>
+{% endfor %}
+</table>
+
+
+
+<h4>{% translate "Errors" %}</h4>
+
+{% if error_list %}
+    <div class="alert alert-danger">{% translate "The following values could not be converted." %}</div>
+
+    <p>{% blocktranslate %}These values could not be converted to a weight log entry.
+    The reasons for this could be anything from an unrecognised date or number
+    format, a problem with the encoding or something else. Please check that
+    there are no obvious errors in the list (and correct them if there are!)
+    and try to import the list again.{% endblocktranslate %}</p>
+
+    <p>{% blocktranslate %}Remember that the expected structure is <strong>date</strong>
+    on the first columns and <strong>weight</strong> on the second.{% endblocktranslate %}</p>
+
+    <table class="table">
+    <tr>
+        <th>{% translate "Date" %}</th>
+        <th>{% translate "Weight" %}</th>
+    </tr>
+    {% for entry in error_list %}
+        <tr>
+            <td>{{ entry.0 }}</td>
+            <td>{{ entry.1 }}</td>
+        </tr>
+    {% endfor %}
+</table>
+
+{% else %}
+    <p>{% blocktranslate %}There were no errors, all entries could be converted!{% endblocktranslate %}</p>
+{% endif %}
+
+
+<h2>{% translate "Import all successfully converted entries" %}</h2>
+<p>{% blocktranslate %}Continue here if you want to import into your weight log all
+entries that were successfully converted. All entries that produced an error
+will simply be ignored. It's up to you to decide whether they are useful
+(unrecognised entries) or not (e.g. headers, comments, etc.).{% endblocktranslate %}</p>
+
+<form action="{{request.get_full_path}}" method="post">
+
+    <input type="hidden" name="{{ stage_field }}" value="2" />
+    <input type="hidden" name="{{ hash_field }}" value="{{ hash_value }}" />
+    {% crispy form %}
+    <input type="submit" name="submit" value="{% translate 'Import' %}" class="btn btn-primary btn-success btn-block" id="submit-id-submit">
+</form>
+
+
+
+<h2>{% translate "Or try it again" %}</h2>
+
+<p>{% blocktranslate %}You can correct the list here and re-submit it as often as
+you want.{% endblocktranslate %}</p>
+
+<form action="{{request.get_full_path}}"
+      method="post"
+      class="form">
+
+    <input type="hidden" name="{{ stage_field }}" value="1" />
+    {% crispy form %}
+    <input type="submit" name="submit" value="{% translate 'Re-Submit' %}" class="btn btn-primary btn-success btn-block" id="submit-id-submit">
+</form>
+
+{% endblock %}

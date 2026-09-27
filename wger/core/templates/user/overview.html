@@ -1,0 +1,505 @@
+{% extends "base.html" %}
+{% load i18n wger_extras django_bootstrap_breadcrumbs %}
+
+{% block title %}{{current_user|format_username}}{% endblock %}
+
+{% block breadcrumbs %}
+    {% if current_user.userprofile.gym %}
+        {{ block.super }}
+
+        {% if perms.gym.manage_gyms %}
+            {% breadcrumb "Gyms" "gym:gym:list" %}
+        {% endif %}
+        {% breadcrumb_raw current_user.userprofile.gym "gym:gym:user-list" current_user.userprofile.gym.pk %}
+        {% breadcrumb_raw current_user|format_username "core:user:overview" current_user.pk %}
+    {% endif %}
+{% endblock %}
+
+
+{% block content %}
+{% url 'core:user:trainer-login' current_user.pk as trainer_login %}
+
+{% if perms.gym.gym_trainer %}
+
+<h4>{% translate "Routines" %} <small>({% blocktranslate with number=10 %}last {{ number }}{% endblocktranslate %})</small></h4>
+{% if perms.gym.gym_trainer %}
+<form method="post" action="{{trainer_login}}" class="d-inline">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{% url 'manager:routine:overview' %}">
+    <button type="submit" class="btn btn-light btn-sm">{% translate "Overview" %}</button>
+</form>
+{% endif %}
+
+<table class="table">
+<thead>
+<tr>
+    <th style="width: 25%;">{% translate "Date" %}</th>
+    <th>{% translate "Description" %}</th>
+    <th>{% translate "Number of logs (days)" %}</th>
+    <th>{% translate "Last activity" %}</th>
+</tr>
+</thead>
+<tbody>
+{% for entry in routine_data %}
+<tr>
+    <td>
+        {{entry.routine.created}}
+    </td>
+    <td>
+        <form method="post" action="{{trainer_login}}" class="d-inline">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ entry.routine.get_absolute_url }}">
+            <button type="submit" class="btn btn-link p-0 align-baseline border-0">{{entry.routine}}</button>
+        </form>
+    </td>
+    <td>
+        {{entry.logs|default:'-/-'}}
+    </td>
+    <td>
+        {{entry.last_log.date|default:'-/-'}}
+    </td>
+</tr>
+{% empty %}
+<tr>
+    <td colspan="2">{% translate "No workouts found." %}</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+
+
+
+
+
+<h4>{% translate "Log" %} <small>({% blocktranslate with number=10 %}last {{ number }}{% endblocktranslate %})</small></h4>
+{% if perms.gym.gym_trainer %}
+<form method="post" action="{{trainer_login}}" class="d-inline">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{% url 'manager:routine:calendar' %}">
+    <button type="submit" class="btn btn-light btn-sm">{% translate "Calendar" %}</button>
+</form>
+{% endif %}
+
+<table class="table">
+<thead>
+<tr>
+    <th style="width: 25%;">{% translate "Date" %}</th>
+    <th>{% translate "General impression" %}</th>
+    <th>{% translate "Notes" %}</th>
+    <th>{% translate "Time" %}</th>
+</tr>
+</thead>
+<tbody>
+{% for log in session %}
+<tr>
+    <td>
+        {{log.datetime_start|date}}
+    </td>
+    <td>
+        {{log.get_impression_display}}
+    </td>
+    <td>
+        {{log.notes|default:'-/-'|truncatewords:6}}
+    </td>
+    <td>
+        {% if log.datetime_end %}
+            {{log.datetime_start|time:"H:i"}} - {{log.datetime_end|time:"H:i"}}
+        {% else %}
+            -/-
+        {% endif %}
+    </td>
+</tr>
+{% empty %}
+<tr>
+    <td colspan="3">{% translate "Nothing found" %}</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+
+
+
+<h4>{% translate "Weight" %} <small>({% blocktranslate with number=5 %}last {{ number }}{% endblocktranslate %})</small></h4>
+{% if perms.gym.gym_trainer %}
+<form method="post" action="{{trainer_login}}" class="d-inline">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{% url 'weight:overview' %}">
+    <button type="submit" class="btn btn-light btn-sm">{% translate "Weight overview" %}</button>
+</form>
+{% endif %}
+
+<table class="table">
+<thead>
+<tr>
+    <th style="width: 25%;">{% translate "Date" %}</th>
+    <th>{% translate "Weight" %}</th>
+</tr>
+</thead>
+<tbody>
+{% for weight in weight_entries %}
+<tr>
+    <td>
+        {{weight.date}}
+    </td>
+    <td>
+        {{weight.value}} {% trans_weight_unit 'kg' current_user %}
+    </td>
+</tr>
+{% empty %}
+<tr>
+    <td colspan="3">{% translate "Nothing found" %}</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+
+
+
+<h4>{% translate "Nutrition plans" %} <small>({% blocktranslate with number=5 %}last {{ number }}{% endblocktranslate %})</small></h4>
+{% if perms.gym.gym_trainer %}
+    <form method="post" action="{{trainer_login}}" class="d-inline">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{% url 'nutrition:plan:overview' %}">
+        <button type="submit" class="btn btn-light btn-sm">{% translate "Overview" %}</button>
+    </form>
+{% endif %}
+
+<table class="table">
+<thead>
+<tr>
+    <th style="width: 25%;">{% translate "Date" %}</th>
+    <th>{% translate "Description" %}</th>
+    <th>{% translate "Energy" %}</th>
+    <th>{% translate "Protein" %}</th>
+    <th>{% translate "Carbohydrates" %}</th>
+    <th>{% translate "Fat" %}</th>
+</tr>
+</thead>
+<tbody>
+{% for nutrition_plan in nutrition_plans %}
+<tr>
+    <td>
+        {{nutrition_plan.creation_date}}
+    </td>
+    <td>
+        <form method="post" action="{{trainer_login}}" class="d-inline">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ nutrition_plan.get_absolute_url }}">
+            <button type="submit" class="btn btn-link p-0 align-baseline border-0">{{nutrition_plan}}</button>
+        </form>
+    </td>
+    <td>
+        {{nutrition_plan.get_nutritional_values.total.energy|floatformat}} {% translate "kcal" %}
+    </td>
+    <td>
+        {{nutrition_plan.get_nutritional_values.total.protein|floatformat}} {% translate "g" context "weight unit, i.e. grams" %}
+    </td>
+    <td>
+        {{nutrition_plan.get_nutritional_values.total.carbohydrates|floatformat}} {% translate "g" context "weight unit, i.e. grams" %}
+    </td>
+    <td>
+        {{nutrition_plan.get_nutritional_values.total.fat|floatformat}} {% translate "g" context "weight unit, i.e. grams" %}
+    </td>
+</tr>
+{% empty %}
+<tr>
+    <td colspan="6">
+        {% translate "Nothing found" %}
+    </td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+
+
+{% endif %}
+{% endblock %}
+
+
+{% block sidebar %}
+{% if perms.gym.manage_gyms or perms.gym.manage_gym %}
+<div class="btn-group float-end">
+    <button type="button" class="btn btn-light dropdown-toggle btn-sm" data-bs-toggle="dropdown">
+        {% translate "Actions" %} <span class="caret"></span>
+    </button>
+    <div class="dropdown-menu" role="menu">
+        {% translate 'Edit' as text %}
+        {% url 'core:user:edit' current_user.pk as url %}
+        {% modal_link url=url text=text css_class='dropdown-item' %}
+
+        <div class="dropdown-divider"></div>
+            {% if current_user.is_active %}
+                {% translate 'Deactivate user' as text %}
+                {% url 'core:user:deactivate' current_user.pk as url %}
+                {% modal_link url=url text=text css_class='dropdown-item' %}
+            {% else %}
+                {% translate 'Activate user' as text %}
+                {% url 'core:user:activate' current_user.pk as url %}
+                {% modal_link url=url text=text css_class='dropdown-item' %}
+            {% endif %}
+        {% translate 'Reset user password' as text %}
+        {% url 'gym:gym:reset-user-password' current_user.pk as url %}
+        {% modal_link url=url text=text css_class='dropdown-item' %}
+        {% if perms.gym.manage_gym or perms.gym.manage_gyms %}
+        {% if current_user.userprofile.gym %}
+            {% translate 'Roles' as text %}
+            {% url 'gym:gym:edit-user-permission' current_user.pk as url %}
+            {% modal_link url=url text=text css_class='dropdown-item' %}
+        {% endif %}
+        {% endif %}
+
+        {% translate 'Delete' as text %}
+        {% url 'core:user:delete' current_user.pk as url %}
+        {% modal_link url=url text=text css_class='dropdown-item' %}
+    </div>
+</div>
+
+{% endif %}
+<h4>{% translate "Details" %}</h4>
+
+<table class="table">
+    <tr>
+        <td>{% translate "Nr." %}</td>
+        <td>{{current_user.pk}}</td>
+    </tr>
+    <tr>
+        <td>{% translate "Name" %}</td>
+        <td>{{current_user.first_name}}</td>
+    </tr>
+    <tr>
+        <td>{% translate "Last name" %}</td>
+        <td>{{current_user.last_name}}</td>
+    </tr>
+    <tr>
+        <td>{% translate "Email" %}</td>
+        <td>
+            {% if current_user.email %}
+                <a href="mailto:{{current_user.email}}">{{current_user.email}}</a>
+            {% else %}
+                -/-
+            {% endif %}
+        </td>
+    </tr>
+    <tr>
+        <td>{% translate "Phone" %}</td>
+        <td> {{ current_user.userprofile.address.phone|default:'-/-' }}</td>
+    </tr>
+    <tr>
+        <td>{% translate "Address" %}</td>
+        <td>
+            {% if not current_user.userprofile.address.zip_code and not current_user.userprofile.address.city and not current_user.userprofile.address.street%}
+                -/-
+            {% else %}
+                {{current_user.userprofile.address.zip_code}} {{current_user.userprofile.address.city}}<br>
+                {{current_user.userprofile.address.street}}
+            {% endif %}
+        </td>
+    </tr>
+    <tr>
+        <td>{% translate "Registered" %}</td>
+        <td>{{current_user.date_joined}}</td>
+    </tr>
+    <tr>
+        <td>{% translate "Last login" %}</td>
+        <td>{{current_user.last_login}}</td>
+    </tr>
+{% if perms.gym.manage_gym or perms.gym.manage_gyms %}
+    <tr {% if not current_user.is_active %}class="danger"{% endif%}>
+        <td>{% translate "Status" %}</td>
+        <td>
+            {% if current_user.is_active %}
+                {% translate "Active" %}
+            {% else %}
+                {% translate "Inactive" %}
+            {% endif %}
+        </td>
+    </tr>
+{% endif %}
+</table>
+
+{#          #}
+{# Contract #}
+{#          #}
+{% if perms.gym.add_contract %}
+<div class="btn-group float-end">
+    <button type="button" class="btn btn-light dropdown-toggle btn-sm" data-bs-toggle="dropdown">
+        {% translate "Actions" %} <span class="caret"></span>
+    </button>
+    <div class="dropdown-menu" role="menu">
+        <a href="{% url 'gym:contract:list' current_user.id %}" class="dropdown-item">{% translate "Overview"%}</a>
+        <a href="{% url 'gym:contract:add' current_user.pk %}" class="dropdown-item">{% translate "Add"%}</a>
+    </div>
+</div>
+
+<h4>{% translate "Contracts" %} <small>({% blocktranslate with number=5 %}last {{ number }}{% endblocktranslate %})</small></h4>
+<table class="table">
+    {% for contract in contracts %}
+    <tr>
+        <td>
+            {{ contract }}
+        </td>
+        <td {% if not contract.is_active %}style="text-decoration: line-through;" {% endif %}>
+            <a href="{{ contract.get_absolute_url }}">{{ contract.date_start }}</a>
+        </td>
+        <td>
+            {{ contract.amount }}
+        </td>
+    </tr>
+    {% empty %}
+    <tr>
+        <td>
+            {% translate "Nothing found" %}
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+{% endif %}
+
+
+{#             #}
+{# Admin notes #}
+{#             #}
+{% if perms.gym.add_adminusernote %}
+<div class="btn-group float-end">
+    <button type="button" class="btn btn-light dropdown-toggle btn-sm" data-bs-toggle="dropdown">
+        {% translate "Actions" %} <span class="caret"></span>
+    </button>
+    <div class="dropdown-menu" role="menu">
+        <a href="{% url 'gym:admin_note:list' current_user.pk %}" class="dropdown-item">{% translate "Overview" %}</a>
+
+        {% translate 'Add' as text %}
+        {% url 'gym:admin_note:add' current_user.pk as url %}
+        {% modal_link url=url text=text css_class='dropdown-item' %}
+    </div>
+</div>
+
+<h4>{% translate "Notes" %} <small>({% blocktranslate with number=5 %}last {{ number }}{% endblocktranslate %})</small></h4>
+<table class="table">
+    {% for note in admin_notes %}
+    <tr>
+        <td>
+            {{ note.timestamp_created }}
+        </td>
+        <td>
+            {{ note.note|truncatewords:10 }}
+        </td>
+    </tr>
+    {% empty %}
+    <tr>
+        <td>
+            {% translate "Nothing found" %}
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+{% endif %}
+
+
+{#           #}
+{# Documents #}
+{#           #}
+{% if perms.gym.add_userdocument %}
+<div class="btn-group float-end">
+    <button type="button" class="btn btn-light dropdown-toggle btn-sm" data-bs-toggle="dropdown">
+        {% translate "Actions" %} <span class="caret"></span>
+    </button>
+    <div class="dropdown-menu" role="menu">
+        <a href="{% url 'gym:document:list' current_user.pk %}" class="dropdown-item">{% translate "Overview" %}</a>
+        <a href="{% url 'gym:document:add' current_user.pk %}" class="dropdown-item">{% translate "Add"%}</a>
+    </div>
+</div>
+
+<h4>{% translate "Documents" %} <small>({% blocktranslate with number=5 %}last {{ number }}{% endblocktranslate %})</small></h4>
+<table class="table">
+    {% for document in current_user.userdocument_member.all %}
+    <tr>
+        <td>
+            <a href="{{ document.document.url }}"
+               class="btn btn-light btn-sm"
+               title="{% translate 'Download' %}"
+               download="{{ document.original_name }}">
+                <span class="glyphicon glyphicon-download"></span>
+            </a>
+        </td>
+        <td>
+            {{ document.timestamp_created }}
+        </td>
+        <td>
+            {{ document.name }}
+        </td>
+    </tr>
+    {% empty %}
+    <tr>
+        <td>
+            {% translate "Nothing found" %}
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+{% endif %}
+
+
+
+{#                   #}
+{# Gym configuration #}
+{#                   #}
+{% if perms.gym.change_gymuserconfig and current_user.gymuserconfig %}
+<div class="btn-group float-end">
+    <button type="button" class="btn btn-light dropdown-toggle btn-sm" data-bs-toggle="dropdown">
+        {% translate "Actions" %} <span class="caret"></span>
+    </button>
+    <div class="dropdown-menu" role="menu">
+
+        {% translate 'Edit' as text %}
+        {% url 'gym:user_config:edit' current_user.gymuserconfig.pk %}
+        {% modal_link url=url text=text css_class='dropdown-item' %}
+    </div>
+</div>
+{% endif %}
+
+<h4>{% translate "Configuration" %}</h4>
+<table class="table">
+    <tr>
+        <td>{% translate 'Include in inactive overview' %}</td>
+        <td style="text-align: right;">
+            {% if current_user.gymuserconfig.include_inactive %}
+                <span class="{% fa_class 'check' %}"></span>
+            {% else %}
+                <span class="{% fa_class 'times' %}"></span>
+            {% endif %}
+        </td>
+    </tr>
+</table>
+{% endblock %}
+
+
+{#         #}
+{# Options #}
+{#         #}
+{% block options %}
+{% if perms.gym.gym_trainer %}
+
+    <style>
+        .btn.btn-sm.btn-secondary {
+            background: #EEE;
+            color: #AAA;
+            cursor: not-allowed;
+        }
+    </style>
+
+    {% if enable_login_button %}
+    <form method="post" action="{% url 'core:user:trainer-login' current_user.pk %}" class="d-inline">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-sm btn-success">
+            {% translate "Log in as this user" %}
+        </button>
+    </form>
+    {% else %}
+    <a href="#"
+       title="{% blocktranslate %}Admin login is only available for users in {{gym_name}}{% endblocktranslate %}"
+       class="btn btn-sm btn-secondary">
+       {% translate "Log in as this user" %}
+    </a>
+    {% endif %}
+{% endif %}
+{% endblock %}

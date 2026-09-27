@@ -1,0 +1,77 @@
+# This file is part of wger Workout Manager.
+#
+# wger Workout Manager is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# wger Workout Manager is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+
+# Standard Library
+import logging
+
+# Django
+from django.conf import settings
+from django.contrib.auth.models import User
+from django.core.cache import cache
+from django.shortcuts import render
+
+# Third Party
+import requests
+
+# wger
+from wger.core.forms import WgerSignupForm
+from wger.exercises.models import Exercise
+from wger.nutrition.models import Ingredient
+
+
+logger = logging.getLogger(__name__)
+
+CACHE_KEY = 'landing-page-context'
+
+
+def fetch_github_stats() -> dict:
+    context = cache.get(CACHE_KEY)
+    if context:
+        return context
+
+    context = {
+        'nr_users': 1,
+        'nr_exercises': 1,
+        'nr_ingredients': 1,
+        'nr_stars': 1,
+    }
+
+    try:
+        result_github_api = requests.get('https://api.github.com/repos/wger-project/wger').json()
+        context['nr_users'] = User.objects.count()
+        context['nr_exercises'] = Exercise.objects.count()
+        context['nr_ingredients'] = Ingredient.objects.count()
+        context['nr_stars'] = result_github_api.get('stargazers_count', '2000')
+        cache.set(CACHE_KEY, context, 60 * 60 * 24 * 7)  # one week
+    except Exception as e:
+        logger.error(f'Error fetching github stats: {e}')
+
+    return context
+
+
+def features(request):
+    """
+    Render the landing page
+    """
+
+    context = fetch_github_stats()
+
+    form = WgerSignupForm()
+    form.fields['username'].widget.attrs.pop('autofocus', None)
+
+    context['form'] = form
+    context['allow_registration'] = settings.WGER_SETTINGS['ALLOW_REGISTRATION']
+    context['allow_guest_users'] = settings.WGER_SETTINGS['ALLOW_GUEST_USERS']
+
+    return render(request, 'features.html', context)

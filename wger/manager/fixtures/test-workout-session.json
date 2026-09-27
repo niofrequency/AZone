@@ -1,0 +1,62 @@
+[
+    {
+        "pk": "bbbbbbbb-bbbb-bbbb-bbbb-000000000001",
+        "model": "manager.workoutsession",
+        "fields": {
+            "impression": "2",
+            "datetime_start": "2025-10-01T17:00:00Z",
+            "routine": 1,
+            "datetime_end": "2025-10-01T18:30:00Z",
+            "user": 1,
+            "notes": "Notes come here"
+        }
+    },
+    {
+        "pk": "bbbbbbbb-bbbb-bbbb-bbbb-000000000002",
+        "model": "manager.workoutsession",
+        "fields": {
+            "impression": "3",
+            "datetime_start": "2025-01-20T17:00:00Z",
+            "routine": 1,
+            "datetime_end": "2025-01-20T18:00:00Z",
+            "user": 1,
+            "notes": "Even more notes and impressions"
+        }
+    },
+    {
+        "pk": "bbbbbbbb-bbbb-bbbb-bbbb-000000000003",
+        "model": "manager.workoutsession",
+        "fields": {
+            "impression": "3",
+            "datetime_start": "2025-01-30T10:00:00Z",
+            "routine": 2,
+            "datetime_end": "2025-01-30T15:00:00Z",
+            "user": 1,
+            "notes": "I spent the whole day in the gym"
+        }
+    },
+    {
+        "pk": "bbbbbbbb-bbbb-bbbb-bbbb-000000000004",
+        "model": "manager.workoutsession",
+        "fields": {
+            "impression": "3",
+            "datetime_start": "2025-11-01T10:00:00Z",
+            "routine": 3,
+            "datetime_end": "2025-11-01T10:15:00Z",
+            "user": 1,
+            "notes": "Something, something else"
+        }
+    },
+    {
+        "pk": "bbbbbbbb-bbbb-bbbb-bbbb-000000000005",
+        "model": "manager.workoutsession",
+        "fields": {
+            "impression": "3",
+            "datetime_start": "2025-11-01T10:00:00Z",
+            "routine": 3,
+            "datetime_end": "2025-11-01T10:15:00Z",
+            "user": 2,
+            "notes": "Something, something else"
+        }
+    }
+]

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% load static %}
+{% load wger_extras %}
+
+
+{% block title %}REST API{% endblock %}
+
+{% block content %}
+
+    <h3>Documentation</h3>
+    <p>The API is documented with openAPI:</p>
+
+    <ul>
+        <li><a href="{% url 'api-root' %}">Browsable API</a></li>
+        <li><a href="{% url 'api-redoc' %}">Redoc</a></li>
+        <li><a href="{% url 'api-swagger-ui' %}">Swagger UI</a></li>
+        <li><a href="{% url 'schema' %}">Download openAPI 3 schema file</a></li>
+    </ul>
+
+    <p>
+        For information on how to authenticate, filter, etc., please consult the online
+        docs at <a href="https://wger.readthedocs.io/en/latest/">https://wger.readthedocs.io/en/latest/</a>
+    </p>
+
+{% endblock %}
+
+
+
+{% block sidebar %}
+    <div class="alert alert-info" style="margin-top:1em;">
+        Note that the open api documentation is very new and things are bound
+        to change somewhat. If you plan to use it to generate a client or
+        similar drop us a line first!
+    </div>
+
+    <a href="{% url 'core:user:api-key' %}" class="btn btn-block btn-light">
+        Generate permanent API KEY
+    </a>
+{% endblock %}

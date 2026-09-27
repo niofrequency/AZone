@@ -1,0 +1,95 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as to inject date/other infos into it.
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.cache
+nosetests.xml
+coverage.xml
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+settings/*_extra.py
+*.sqlite
+/CACHE
+
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+target/
+
+# IDE
+.idea/
+.vscode/
+
+# External Libraries
+wger/core/static/yarn
+node_modules
+/.yarn/install-state.gz
+
+# Virtual envs
+.venv
+venv
+venv-wger
+.python-version
+
+# Dummy translation files to copy to react or flutter repo
+/wger/i18n.tsx
+/wger/i18n.dart
+/wger/app_en.arb
+
+# Other files and folders
+/coverage.lcov
+/media/
+/static/
+/db/
+/extras/docker/open-food-facts/dump/*.tar.gz
+/extras/docker/open-food-facts/dump/off/*
+/extras/authors/commits_cache/
+/extras/authors/*-AUTHORS.md
+/extras/authors/*.rst
+/extras/scripts/*.json
+/extras/open-food-facts/dump/
+/.claude/
+
+# macOS
+.DS_Store

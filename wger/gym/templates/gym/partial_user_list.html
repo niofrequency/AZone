@@ -1,0 +1,63 @@
+{% load i18n static %}
+
+<link rel="stylesheet" type="text/css" href="{% static 'node/datatables.net-bs5/css/dataTables.bootstrap5.min.css' %}">
+<script src="{% static 'node/datatables.net/js/dataTables.min.js' %}" ></script>
+<script src="{% static 'node/datatables.net-bs5/js/dataTables.bootstrap5.min.js' %}" ></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const title = document.createElement('h4');
+        title.textContent = '{% translate "Members" %}';
+
+        new DataTable('#main_member_list', {
+            paging: false,
+            searching: true,
+            info: false,
+            layout: {
+                topStart: title,
+                topEnd: 'search',
+                bottomStart: null,
+                bottomEnd: null
+            }
+        });
+    });
+</script>
+
+
+<table class="table table-hover table-responsive" id="main_member_list">
+<thead>
+<tr>
+    {% for key in user_table.keys %}
+        <th>{{ key }}</th>
+    {% endfor %}
+</tr>
+</thead>
+<tbody>
+{% for current_user in user_table.users %}
+<tr>
+    <td>
+        {{current_user.obj.pk}}
+    </td>
+    <td>
+        <a href="{% url 'core:user:overview' current_user.obj.pk %}">{{current_user.obj}}</a>
+    </td>
+    <td>
+        {{current_user.obj.get_full_name}}
+    </td>
+    <td data-order="{{current_user.last_log|date:'U'}}">
+        {{current_user.last_log|default:'-/-'}}
+    </td>
+    {% if show_gym %}
+    <td>
+        {% if current_user.obj.userprofile.gym_id %}
+            <a href="{{ current_user.obj.userprofile.gym.get_absolute_url }}">
+            {{ current_user.obj.userprofile.gym }}
+            </a>
+        {% else %}
+            -/-
+        {% endif %}
+    </td>
+    {% endif %}
+</tr>
+{% endfor %}
+</tbody>
+</table>

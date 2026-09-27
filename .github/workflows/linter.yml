@@ -1,0 +1,42 @@
+name: Lint Code Base
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - '**.md'
+  pull_request:
+    branches:
+      - master
+    paths:
+      - '**.md'
+
+jobs:
+  build:
+    name: Lint Code Base
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: read
+      # To report GitHub Actions status checks
+      statuses: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v7
+        with:
+          # super-linter needs the full git history to get the
+          # list of files that changed across commits
+          fetch-depth: 0
+          persist-credentials: false
+
+      # Check https://github.com/super-linter/super-linter for other options
+      - name: Lint Code Base
+        uses: super-linter/super-linter@v8
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VALIDATE_MARKDOWN: true
+
+

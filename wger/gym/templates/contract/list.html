@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% load i18n static wger_extras django_bootstrap_breadcrumbs %}
+
+{% block title %}{% translate "Contracts" %}{% endblock %}
+
+
+{% block breadcrumbs %}
+    {{ block.super }}
+
+    {% if perms.gym.manage_gyms %}
+        {% breadcrumb "Gyms" "gym:gym:list" %}
+    {% endif %}
+    {% breadcrumb_raw member.userprofile.gym "gym:gym:user-list" member.userprofile.gym_id %}
+    {% breadcrumb_raw member|format_username "core:user:overview" member.pk %}
+    {% breadcrumb "Contracts" "gym:contract:list" member.pk %}
+{% endblock %}
+
+
+{% block content %}
+    <div class="list-group">
+        {% for contract in contract_list %}
+            <li class="list-group-item list-group-item-action">
+                <div class="btn-group float-end">
+                    <button type="button" class="btn btn-dark dropdown-toggle btn-sm"
+                            data-bs-toggle="dropdown">
+                        <span class="{% fa_class 'cog' %}"></span>
+                    </button>
+                    <div class="dropdown-menu" role="menu">
+                        {% if perms.gym.change_contract %}
+                            {% translate 'Edit' as text %}
+                            {% url 'gym:contract:edit' contract.pk as url %}
+                            {% modal_link url=url text=text css_class='dropdown-item' %}
+
+                            {% translate 'Show' as text %}
+                            {% url 'gym:contract:view' contract.pk as url %}
+                            {% modal_link url=url text=text css_class='dropdown-item' %}
+                        {% endif %}
+                    </div>
+                </div>
+
+
+                <h4 class="list-group-item-heading">
+                    {{ contract.contract_type.name }}
+
+                    <small>
+                        {{ contract.date_start }}
+                        {% if contract.date_end %}
+                            - {{ contract.date_end }}
+                        {% endif %}
+                    </small>
+                </h4>
+
+                <p class="list-group-item-text">{{ contract.note }}</p>
+            </li>
+            {% empty %}
+            <li class="list-group-item">
+                {% translate "Nothing found" %}
+            </li>
+        {% endfor %}
+    </div>
+{% endblock %}
+
+
+
+{#         #}
+{# Options #}
+{#         #}
+{% block options %}
+    {% translate 'Add' as text %}
+    {% url 'gym:contract:add' member.pk as url %}
+    {% modal_link url=url text=text %}
+{% endblock %}

@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% load i18n static wger_extras django_bootstrap_breadcrumbs %}
+
+{% block title %}{% translate "User notes" %}{% endblock %}
+
+
+
+{% block breadcrumbs %}
+    {{ block.super }}
+
+    {% if perms.gym.manage_gyms %}
+        {% breadcrumb "Gyms" "gym:gym:list" %}
+    {% endif %}
+    {% breadcrumb_raw member.userprofile.gym "gym:gym:user-list" member.userprofile.gym.pk %}
+    {% breadcrumb_raw member|format_username "core:user:overview" member.pk %}
+    {% breadcrumb "User notes" "gym:user_notes:list" member.pk %}
+{% endblock %}
+
+
+{% block content %}
+    <ul class="list-group">
+        {% for note in adminusernote_list %}
+            <li class="list-group-item ">
+                <div class="btn-group float-end">
+                    <button type="button" class="btn btn-light dropdown-toggle btn-sm"
+                            data-bs-toggle="dropdown">
+                        <span class="{% fa_class 'cog' %}"></span>
+                    </button>
+                    <div class="dropdown-menu" role="menu">
+                        {% if perms.gym.change_adminusernote %}
+                            {% translate 'Edit' as text %}
+                            {% url 'gym:admin_note:edit' note.pk as url %}
+                            {% modal_link url=url text=text css_class='dropdown-item' %}
+                        {% endif %}
+
+                        {% if perms.gym.delete_adminusernote %}
+                            {% translate 'Delete' as text %}
+                            {% url 'gym:admin_note:delete' note.pk as url %}
+                            {% modal_link url=url text=text css_class='dropdown-item' %}
+                        {% endif %}
+                    </div>
+                </div>
+
+                <h4 class="list-group-item-heading">{{ note.timestamp_created }}
+                    - {{ note.user|format_username }}</h4>
+                <p class="list-group-item-text">{{ note.note }}</p>
+            </li>
+            {% empty %}
+            <li class="list-group-item">
+                {% translate "Nothing found" %}
+            </li>
+        {% endfor %}
+    </ul>
+{% endblock %}
+
+
+
+
+{#         #}
+{# Options #}
+{#         #}
+{% block options %}
+{% if perms.gym.add_adminusernote %}
+    {% translate 'Add' as text %}
+    {% url 'gym:admin_note:add' member.pk as url %}
+    {% modal_link url=url text=text %}
+{% endif %}
+{% endblock %}

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% load rest_framework wger_extras django_bootstrap_breadcrumbs static crispy_forms_tags i18n %}
+
+{% block header %}
+    <link rel="stylesheet" type="text/css" href="{% static 'rest_framework/css/prettify.css' %}"/>
+    <script src="{% static 'rest_framework/js/prettify-min.js' %}"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            prettyPrint();
+        });
+    </script>
+{% endblock %}
+
+{% block title %}REST API - {{ name }}{% endblock %}
+
+{#             #}
+{# Breadcrumbs #}
+{#             #}
+{% block breadcrumbs %}
+    {{ block.super }}
+
+    {% breadcrumb "Api Documentation" "software:api" %}
+    {% for breadcrumb_name, breadcrumb_url in breadcrumblist %}
+        {% breadcrumb_raw breadcrumb_name breadcrumb_url %}
+    {% endfor %}
+{% endblock %}
+
+
+
+{% block content %}
+    {#                             #}
+    {# Object/endpoint description #}
+    {#                             #}
+    <div>
+
+        <div class="request-info" style="clear: both">
+            <pre class="prettyprint"><b>{{ request.method }}</b> {{ request.get_full_path }}</pre>
+        </div>
+
+        <div class="response-info">
+        <pre class="prettyprint">
+            <span
+                class="meta nocode"><b>HTTP {{ response.status_code }} {{ response.status_text }}</b>
+                {% for key, val in response_headers|items %}
+                    <b>{{ key }}:</b> <span class="lit">{{ val|urlize }}</span>
+                {% endfor %}
+
+            </span>{{ content|urlize }}</pre>
+        </div>
+
+
+    </div>
+{% endblock %}

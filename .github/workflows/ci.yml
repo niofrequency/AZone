@@ -1,0 +1,69 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches: [ master, ]
+    paths:
+      - '**.py'
+      - 'pyproject.toml'
+  pull_request:
+    # The branches below must be a subset of the branches above
+    branches: [ master, ]
+    paths:
+      - '**.py'
+      - 'pyproject.toml'
+
+jobs:
+  ci-job:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    env:
+      DJANGO_SETTINGS_MODULE: settings.ci
+      DJANGO_MEDIA_ROOT: /tmp/wger-test
+
+    strategy:
+      matrix:
+        python-version: [ '3.12', '3.13', '3.14' ]
+    name: CI job (python ${{ matrix.python-version }})
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Display Python version
+        run: python --version
+
+      - name: Install dependencies
+        run: |
+          uv sync --group dev --python ${{ matrix.python-version }}
+          mkdir /tmp/wger-test
+
+      # Only run the tests with coverage for one version of python.
+      - name: Test the application with coverage
+        if: matrix.python-version == 3.13
+        run: |
+          uv run coverage run --source='.' ./manage.py test --parallel auto
+          uv run coverage lcov
+
+      - name: Test the application
+        if: matrix.python-version != 3.13
+        run: |
+          uv run ./manage.py test --parallel auto
+
+      - name: Coveralls
+        if: matrix.python-version == 3.13
+        uses: coverallsapp/github-action@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path-to-lcov: coverage.lcov

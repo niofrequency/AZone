@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% load i18n static wger_extras django_bootstrap_breadcrumbs %}
+
+{% block title %}{% translate "Contract options" %}{% endblock %}
+
+
+{% block breadcrumbs %}
+    {{ block.super }}
+
+    {% if perms.gym.manage_gyms %}
+        {% breadcrumb "Gyms" "gym:gym:list" %}
+    {% endif %}
+    {% breadcrumb_raw gym "gym:gym:user-list" gym.pk %}
+    {% breadcrumb "Contract options" "gym:contract-option:list" gym.pk %}
+{% endblock %}
+
+
+{% block content %}
+
+    <ul class="list-group">
+        {% for option in contractoption_list %}
+            <li class="list-group-item list-group-item-action">
+                <div class="btn-group float-end">
+                    <button type="button" class="btn btn-dark dropdown-toggle btn-sm" data-bs-toggle="dropdown">
+                        <span class="{% fa_class 'cog' %}"></span>
+                    </button>
+                    <div class="dropdown-menu" role="menu">
+                        {% if perms.gym.change_contracttype %}
+                            {% translate 'Edit' as text %}
+                            {% url 'gym:contract-option:edit' option.pk as url %}
+                            {% modal_link url=url text=text css_class='dropdown-item' %}
+                        {% endif %}
+
+                        {% if perms.gym.delete_contracttype %}
+                            {% translate 'Delete' as text %}
+                            {% url 'gym:contract-option:delete' option.pk as url %}
+                            {% modal_link url=url text=text css_class='dropdown-item' %}
+                        {% endif %}
+
+                    </div>
+                </div>
+
+
+                <h4 class="list-group-item-heading">
+                    {{ option.name }}
+                </h4>
+
+                <p class="list-group-item-text" style="white-space: pre-line;">{{ option.description }}</p>
+            </li>
+            {% empty %}
+            <li class="list-group-item">
+                {% translate "Nothing found" %}
+            </li>
+        {% endfor %}
+    </ul>
+{% endblock %}
+
+
+
+
+{#         #}
+{# Options #}
+{#         #}
+{% block options %}
+    {% translate 'Add' as text %}
+    {% url 'gym:contract-option:add' gym.id  as url %}
+    {% modal_link url=url text=text %}
+{% endblock %}
