@@ -196,9 +196,9 @@ existing tables, so the change shows up everywhere.
 
 ## 5. Getting started
 
-See [getting-started.md](getting-started.md) for running AZone locally and loading the program.
-
-Hosting it for yourself and friends: a small VPS (or Railway/Fly) running wger's docker-compose (Postgres + Redis + Celery).
+See [getting-started.md](getting-started.md) for running AZone locally and loading the program, and
+[deploy/README.md](../deploy/README.md) for hosting it (Docker Compose on a small VPS: the app built
+from this repo, Postgres, Redis, nginx).
 
 ---
 
@@ -212,6 +212,6 @@ Hosting it for yourself and friends: a small VPS (or Railway/Fly) running wger's
 | 4 | Coach models + check-in page | Weekly measurements & photos saved. V-taper ratio charted | ✅ `/coach/check-in/`, `/coach/goal/` |
 | 5 | Rules engine + dashboard | Recommendations appear, and "Apply" changes the routine or calorie goal | ✅ `/coach/` |
 | 6 | Cardio + steps | Cardio log and 7-day steps average on the dashboard | ✅ `/coach/cardio/` |
-| 7 | Deploy | Public URL, other people can sign up and set their own goals | |
+| 7 | Deploy | Public URL, other people can sign up and set their own goals | ✅ ready: `deploy/` (needs a server) |
 
 Each milestone gets tests in `wger/coach/tests/`, following wger's existing test style.

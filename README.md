@@ -1,3 +1,23 @@
+# AZone
+
+A personal training, nutrition and body-tracking app built on [wger](https://github.com/wger-project/wger),
+with a **coach** on top that reads your check-ins and tells you what to adjust:
+
+- **Dashboard** (`/coach/`): 7-day average weight and weekly pace against your goal, V-taper
+  (shoulder:waist) ratio, today's protein and calories, steps and cardio, and a list of
+  recommendations you can apply in one click (calorie goal, extra sets)
+- **Weekly check-in**: weight, waist, shoulders, chest, arms, thighs and a progress photo, with charts
+- **Automatic progression**: double progression with per-exercise increments and deloads
+- **Cardio & steps** log
+- **Aesthetic 165** program loaded with one command: `manage.py seed_aesthetic165`
+
+Docs: [getting started](docs/getting-started.md) · [deployment](deploy/README.md) ·
+[design plan](docs/wger-fork-plan.md). The coach lives in `wger/coach/`.
+
+AZone is a modified version of wger and, like wger, licensed under the AGPL-3.0.
+
+---
+
 # wger
 
 <p align="center">

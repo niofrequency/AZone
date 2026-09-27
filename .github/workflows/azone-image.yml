@@ -1,0 +1,45 @@
+# AZone: builds the production image (wger + the coach app) and publishes it
+# to the GitHub container registry as ghcr.io/<owner>/<repo>, so a server can
+# pull it instead of building. Uses the repository's own token, no secrets.
+name: AZone image
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  image:
+    if: github.repository != 'wger-project/wger'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Image name
+        id: name
+        run: echo "image=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: extras/docker/production/Dockerfile
+          push: true
+          build-args: |
+            BUILD_COMMIT=${{ github.sha }}
+          tags: |
+            ${{ steps.name.outputs.image }}:latest
+            ${{ steps.name.outputs.image }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

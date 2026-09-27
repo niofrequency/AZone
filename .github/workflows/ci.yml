@@ -2,13 +2,13 @@ name: Continuous Integration
 
 on:
   push:
-    branches: [ master, ]
+    branches: [ master, main, ]
     paths:
       - '**.py'
       - 'pyproject.toml'
   pull_request:
     # The branches below must be a subset of the branches above
-    branches: [ master, ]
+    branches: [ master, main, ]
     paths:
       - '**.py'
       - 'pyproject.toml'
@@ -62,7 +62,7 @@ jobs:
           uv run ./manage.py test --parallel auto
 
       - name: Coveralls
-        if: matrix.python-version == 3.13
+        if: matrix.python-version == 3.13 && github.repository == 'wger-project/wger'
         uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}

@@ -116,3 +116,8 @@ and re-run the seed command with `--replace`.
 ```bash
 DJANGO_SETTINGS_MODULE=settings.ci uv run python manage.py test wger.coach
 ```
+
+## 6. Putting it online
+
+See [deploy/README.md](../deploy/README.md): Docker Compose on a small VPS (the app built from this
+repository, Postgres, Redis and nginx), HTTPS with Caddy, backups and updates.

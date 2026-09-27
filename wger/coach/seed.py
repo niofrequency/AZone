@@ -132,7 +132,9 @@ def seed_program(
         if current_weight is not None:
             result.body_weight = _log_body_weight(user, current_weight, weight_unit)
         if program.goal is not None:
-            result.goal = _create_or_update_goal(user, program, start, current_weight, weight_unit)
+            result.goal = _create_or_update_goal(
+                user, program, start, result.routine.end, current_weight, weight_unit
+            )
 
     return result
 
@@ -275,6 +277,7 @@ def _create_or_update_goal(
     user: User,
     program: ProgramSpec,
     start: datetime.date,
+    end: datetime.date,
     current_weight: Decimal | None,
     weight_unit: str,
 ) -> CoachGoal:
@@ -288,7 +291,8 @@ def _create_or_update_goal(
         'weight_unit': weight_unit,
         'start_date': start,
         'target_weight': in_unit(spec.target_weight_lb),
-        'target_date': start + datetime.timedelta(weeks=program.weeks),
+        # The last day of the routine
+        'target_date': end,
         'rate_min_per_week': in_unit(spec.rate_min_per_week_lb),
         'rate_max_per_week': in_unit(spec.rate_max_per_week_lb),
         'protein_target': spec.protein,
